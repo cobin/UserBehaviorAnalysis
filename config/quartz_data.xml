@@ -21,7 +21,7 @@
 	    <!--  
 	    	获取外呼用户的成单情况分析
     		周一到周五 每天8，17  30执行 
-    	-->
+    	--> 
     	<job>
 	        <name>WorkCallNotify</name> 
 	        <job-class>com.behavior.scheduler.WorkCallNotify</job-class>
@@ -41,9 +41,9 @@
 	        <cron>
 	            <name>WorkCallProNotifyTrigger</name>
 	            <job-name>WorkCallProNotify</job-name>
-                <cron-expression>30 0/20 8-23 ? * 1-7</cron-expression>
+                <cron-expression>0 0/20 8-23 ? * 1-7</cron-expression>
             </cron>
-	    </trigger>
+	    </trigger> 
 	<!--
 	<job>
 	        <name>WorkCall360Notify</name> 
@@ -77,7 +77,7 @@
 	        <cron>
 	            <name>WorkCallCourseTrigger</name>
 	            <job-name>WorkCallCourse</job-name>
-                <cron-expression>0 32 2,3,20,21,22,23 ? * 1-7</cron-expression>
+                <cron-expression>0 45 7,8,9 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
 
@@ -148,7 +148,7 @@
 	        <cron>
 	            <name>WorkCallZHouBehavLog10Trigger</name>
 	            <job-name>WorkCallZHouBehavLog10</job-name>
-                <cron-expression>0 23 7,20,21,22,23 ? * 1-7</cron-expression>
+                <cron-expression>0 23 7,23 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
 
@@ -242,7 +242,7 @@
 	        <cron>
 	            <name>WorkCallZHouKeMobileRegTrigger</name>
 	            <job-name>WorkCallZHouKeMobileReg</job-name>
-                <cron-expression>0 22,52 7-23 ? * 1-7</cron-expression>
+                <cron-expression>0 12,42 7-23 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
 	
@@ -269,7 +269,7 @@
                 <cron-expression>0 24 8,20 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
-
+	    
 	    <job>
 	        <name>WorkCallKaiUsersLogin</name> 
 	        <job-class>com.behavior.scheduler.WorkCallKaiUsersLoginNotify</job-class>
@@ -281,7 +281,7 @@
                 <cron-expression>0 40 6 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
-
+	    
 	    <job>
 	        <name>WorkCallXZTelallocStat</name> 
 	        <job-class>com.behavior.scheduler.WorkCallXZTelallocStatNotify</job-class>
@@ -293,8 +293,8 @@
                 <cron-expression>0 58 7-23 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
-
-	     <job>
+	    
+	    <job>
 	        <name>WorkCallSmallSingle</name> 
 	        <job-class>com.behavior.scheduler.WorkCallSmallSingleNotify</job-class>
 	    </job>
@@ -305,7 +305,19 @@
                 <cron-expression>0 12 8 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
-
+		
+		<job>
+	        <name>WorkCallZHouBehavLog8</name> 
+	        <job-class>com.behavior.scheduler.WorkCallZHouBehavLog8Notify</job-class>
+	    </job>
+	    <trigger> 
+	        <cron>
+	            <name>WorkCallZHouBehavLog8Trigger</name>
+	            <job-name>WorkCallZHouBehavLog8</job-name>
+                <cron-expression>0 18 7-23 ? * 1-7</cron-expression>
+            </cron>
+	    </trigger>
+	    
 	    <job>
 	        <name>WorkCallZHouBehavLog9</name> 
 	        <job-class>com.behavior.scheduler.WorkCallZHouBehavLog9Notify</job-class>
@@ -314,10 +326,10 @@
 	        <cron>
 	            <name>WorkCallZHouBehavLog9Trigger</name>
 	            <job-name>WorkCallZHouBehavLog9</job-name>
-                <cron-expression>0 28 7-23 ? * 1-7</cron-expression>
+                <cron-expression>0 23 7-23 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
-
+	    
 	    <job>
 	        <name>WorkCallQuestionInquireWeb</name> 
 	        <job-class>com.behavior.scheduler.WorkCallQuestionInquireWebNotify</job-class>
@@ -329,6 +341,7 @@
                 <cron-expression>0 13 9-19 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
+	    
 	    <job>
 	        <name>WorkCallZHouEbRelPersonNerve</name> 
 	        <job-class>com.behavior.scheduler.WorkCallZHouEbRelPersonNerveNotify</job-class>
@@ -351,7 +364,7 @@
                 <cron-expression>0 20 8-22 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
-
+	    
 	    <job>
 	        <name>WorkCallWapPcAdept</name> 
 	        <job-class>com.behavior.scheduler.WorkCallWapPcAdeptNotify</job-class>
@@ -363,5 +376,43 @@
                 <cron-expression>0 27,57 8-23 ? * 1-7</cron-expression>
             </cron>
 	    </trigger>
+
+	    
+	    <job>
+	        <name>WorkCallSmallWapNewResource</name> 
+	        <job-class>com.behavior.scheduler.WorkCallSmallWapNewResourceNotify</job-class>
+	    </job>
+	    <trigger> 
+	        <cron>
+	            <name>WorkCallSmallWapNewResourceTrigger</name>
+	            <job-name>WorkCallSmallWapNewResource</job-name>
+                <cron-expression>0 5 8 ? * 1-7</cron-expression>
+            </cron>
+	    </trigger>	
+	    	    
+	    <job>
+	        <name>WorkCallZHouKeCustpresaleInfo</name> 
+	        <job-class>com.behavior.scheduler.WorkCallZHouKeCustpresaleInfoNotify</job-class>
+	    </job>
+	    <trigger> 
+	        <cron>
+	            <name>WorkCallZHouKeCustpresaleInfoTrigger</name>
+	            <job-name>WorkCallZHouKeCustpresaleInfo</job-name>
+                <cron-expression>0 42 * ? * 1-7</cron-expression>
+            </cron>
+	    </trigger>    
+	<!--
+	   <job>
+	        <name>WorkCallTest</name> 
+	        <job-class>com.behavior.scheduler.WorkCallTestNotify</job-class>
+	    </job>
+	    <trigger> 
+	        <cron>
+	            <name>WorkCallTestTrigger</name>
+	            <job-name>WorkCallTest</job-name>
+                <cron-expression>0/2 * 9-19 ? * 1-7</cron-expression>
+            </cron>
+	    </trigger>
+	    -->
     </schedule>
 </job-scheduling-data>
