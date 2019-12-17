@@ -15,9 +15,14 @@ import org.quartz.PersistJobDataAfterExecution;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:22
+ * @version 1.0
+ * DisallowConcurrentExecution //// 不允许并发执行
+*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution //// 不允许并发执行
+@DisallowConcurrentExecution
 public class WorkCallZHouKeCustpresaleInfoNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -107,7 +112,8 @@ public class WorkCallZHouKeCustpresaleInfoNotify extends WorkJob {
 					isUpdate = true;
 				}
 				
-				if(!isUpdate){//表示此纪录没有任何变化不需要处理
+				//表示此纪录没有任何变化不需要处理
+				if(!isUpdate){
 					continue;
 				}
 				

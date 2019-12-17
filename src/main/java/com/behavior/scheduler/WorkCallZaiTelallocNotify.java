@@ -14,8 +14,14 @@ import org.quartz.PersistJobDataAfterExecution;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.behavior.mapper.mapper91.CallTask91Mapper;
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:20
+ * @version 1.0
+ * DisallowConcurrentExecution //// 不允许并发执行
+*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution //// 不允许并发执行
+@DisallowConcurrentExecution
 public class WorkCallZaiTelallocNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {

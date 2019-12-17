@@ -8,7 +8,11 @@ import org.quartz.JobExecutionException;
 
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper1110.CallTask1110Mapper;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:09
+ * @version 1.0
+*/
 public class WorkCallKeeperPlat360Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {

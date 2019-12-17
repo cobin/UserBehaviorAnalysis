@@ -23,7 +23,6 @@
       <envVar name="JDK_HOME" />
     </searchSequence>
     <classPath>
-      <archive location="D:/IdeaProject/UserBehaviorAnalysis/target/UserBehaviorAnalysis-1.1-jar-with-dependencies.jar" failOnError="false" />
       <archive location="D:/IdeaProject/UserBehaviorAnalysis/target/UserBehaviorAnalysis-1.1.jar" failOnError="false" />
     </classPath>
     <nativeLibraryDirectories />

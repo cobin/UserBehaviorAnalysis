@@ -14,8 +14,14 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.cobin.util.CDate;
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:19
+ * @version 1.0
+ * DisallowConcurrentExecution //// 不允许并发执行
+*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution //// 不允许并发执行
+@DisallowConcurrentExecution
 public class WorkCallXZTelallocStatNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -32,7 +38,8 @@ public class WorkCallXZTelallocStatNotify extends WorkJob {
 	public void execWork(BehaviorMain bm,String qDate){
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class); 
 		CallTask69Mapper ct69 = bm.getMapper(CallTask69Mapper.class);
-		curQuery = new CDate();//"2017-11-28"
+		//"2017-11-28"
+		curQuery = new CDate();
 		if(curQuery.getHourOfDay()<12) {
 			curQuery.addDate(-1);
 		}

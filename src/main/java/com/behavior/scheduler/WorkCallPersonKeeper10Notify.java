@@ -14,9 +14,14 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.cobin.util.CDate;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:12
+ * @version 1.0
+ * DisallowConcurrentExecution  不允许并发执行
+*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution //// 不允许并发执行
+@DisallowConcurrentExecution
 public class WorkCallPersonKeeper10Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -42,13 +47,16 @@ public class WorkCallPersonKeeper10Notify extends WorkJob {
 				break;
 			}
 			xCount++;
-			if(xCount>150)break;
+			if(xCount>150){
+				break;
+			}
 		}
-		if(curQuery!=null)
+		if(curQuery!=null) {
 			ct111.updateEbPersonKeeper10(CDate.formatIntDate());
+		}
 		
 	}
-	//
+
 	protected int loadPersonKeeper(CallTask111Mapper ct111,CallTask69Mapper ct69){
 		if(curQuery==null){
 			curQuery = ct111.getEbPersonKeeper10MaxDate();

@@ -37,7 +37,11 @@ import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:09
+ * @version 1.0
+*/ 
 public class WorkCallMailNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -179,10 +183,14 @@ public class WorkCallMailNotify extends WorkJob {
 	public boolean uploadExcel(String fileName) {		
 		File fup = new File("mail/"+fileName);
 		if(fup.exists()){		
-			String user = "brokerage";// SSH连接用户名
-			String password = "Wjm_123456";// SSH连接密码
-			String host = "172.17.161.75";// SSH服务器
-			int port = 22;// SSH访问端口
+			// SSH连接用户名
+			String user = "brokerage";
+			// SSH连接密码
+			String password = "Wjm_123456";
+			// SSH服务器
+			String host = "172.17.161.75";
+			// SSH访问端口
+			int port = 22;
 			com.jcraft.jsch.Session session = null;		
 			try {
 				JSch jsch = new JSch();			

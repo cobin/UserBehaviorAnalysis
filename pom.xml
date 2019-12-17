@@ -246,8 +246,8 @@
               <manifest>
                 <!--定义main方法类-->
                 <mainClass>com.behavior.BehaviorMain</mainClass>
-                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+<!--                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>-->
+<!--                <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>-->
               </manifest>
             </archive>
             <descriptorRefs>

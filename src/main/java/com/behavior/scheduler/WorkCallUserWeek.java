@@ -28,7 +28,11 @@ import org.quartz.JobExecutionException;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper9101.CallTask9101Mapper;
 import com.cobin.util.Tools;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:17
+ * @version 1.0
+*/
 public class WorkCallUserWeek extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -259,9 +263,15 @@ public class WorkCallUserWeek extends WorkJob {
 			Double _v = (Double)mData.get("signRegionXr_"+regionType); //新单部做的新单数 
 			Double _vp = (Double)mData.get("personCount_"+regionType); //新单部的人数
 			Double _vs = (Double)mData.get("signRegion_"+regionType);  //小单期间非新单部做的小单数
-			if(_v==null) _v=0d;
-			if(_vs==null) _vs = 0d;
-			if(_vp==null) _vp = 0d;
+			if(_v==null){
+				_v=0d;
+			}
+			if(_vs==null){
+				_vs = 0d;
+			}
+			if(_vp==null){
+				_vp = 0d;
+			}
 			
 			for(Map.Entry<String, Object> mv:mData.entrySet()) {
 				String key = mv.getKey();				
@@ -320,8 +330,12 @@ public class WorkCallUserWeek extends WorkJob {
 			int regionType =(int) u.get("regionType");
 			Double _v = (Double)actData.get("signRegion_"+regionType);
 			Double _vr = (Double)actData.get("signRegionXr_"+regionType);
-			if(_v==null) _v=0d;
-			if(_vr==null) _vr=0d;
+			if(_v==null){
+				_v=0d;
+			}
+			if(_vr==null){
+				_vr=0d;
+			}
 			_v+=(double)mData.get("signRegion_"+regionType);
 			actData.put("signRegion_"+regionType,_v);
 			_vr+=(double)mData.get("signRegionXr_"+regionType);
@@ -443,7 +457,8 @@ public class WorkCallUserWeek extends WorkJob {
 	
 	public Map<String,Double> getActWeekOver(List<Map<String,Object>> weekUser0,int weekStart,Map<String,Object> exportAct) {
 		//第二期...N期活动 ，actType 活动类型 1 小单360  2 3600 3 18000
-		Map<String,Object> vM = weekUser0.get(weekStart-1); //获取上轮活动结束时的人员情况
+		//获取上轮活动结束时的人员情况
+		Map<String,Object> vM = weekUser0.get(weekStart-1);
 		Map<String,Double> vData = new HashMap<>();
 		for(Map.Entry<String, Object> v:vM.entrySet()) {
 			String key = v.getKey();
@@ -547,12 +562,17 @@ public class WorkCallUserWeek extends WorkJob {
 				}
 				exportData.add(data1);
 
-				writerUsersExcel(wb,exportData,titleCell1,0);//用户总体统计数据
+				//用户总体统计数据
+				writerUsersExcel(wb,exportData,titleCell1,0);
 			}else {			
-				writerUsersExcel(wb,weekUsers.get(0),titleCell,0);//用户总体统计数据
-				writerTrapeziumExcel(wb,"合计",weekUsers.get(1)); //所有新用户的梯形数据
-				writerTrapeziumExcel(wb,"分中心",weekUsers.get(2)); //所有新用户的梯形数据			
-				writerDistributionExcel(wb,users.get(0),users.get(1),config,weekUsers.get(2),weekUsers.get(0)); //根据周期生成对应的人员分布情况
+				//用户总体统计数据
+				writerUsersExcel(wb,weekUsers.get(0),titleCell,0);
+				//所有新用户的梯形数据
+				writerTrapeziumExcel(wb,"合计",weekUsers.get(1));
+				//所有新用户的梯形数据
+				writerTrapeziumExcel(wb,"分中心",weekUsers.get(2));
+				//根据周期生成对应的人员分布情况
+				writerDistributionExcel(wb,users.get(0),users.get(1),config,weekUsers.get(2),weekUsers.get(0));
 			}
 			//创建文件流   
 	        OutputStream stream = new FileOutputStream(outFileName);  
@@ -590,7 +610,8 @@ public class WorkCallUserWeek extends WorkJob {
 		List<Map<String,Double>> c2 = new ArrayList<>();
 		List<Map<String,Double>> c3 = new ArrayList<>();
 		try {
-			InputStream is = new FileInputStream(pzExcel);//"计算招聘人数新单.xlsx"
+			//"计算招聘人数新单.xlsx"
+			InputStream is = new FileInputStream(pzExcel);
 			Workbook wb = new XSSFWorkbook(is);  
 			for(int j=0;j<6 && j<wb.getNumberOfSheets();j++) {
 				Sheet sheet = wb.getSheetAt(j);
@@ -599,7 +620,9 @@ public class WorkCallUserWeek extends WorkJob {
 		        for (int i = 1; i <= rowNum; i++) {  
 		        	Row row = sheet.getRow(i);
 		        	Object s = row.getCell(cols1[1]);
-		        	if(s==null || s.toString().length()==0) break;
+		        	if(s==null || s.toString().length()==0){
+		        		break;
+					}
 		        	//if(row.getCell(1).getNumericCellValue()>0) break;
 		        	if(j<5) {
 		        		Map<String,Double> mm= getCells(row,cols1,key1);
@@ -640,7 +663,8 @@ public class WorkCallUserWeek extends WorkJob {
         if (cell != null) {  
             // 判断当前Cell的Type  
             switch (cell.getCellType()) {  
-            case Cell.CELL_TYPE_NUMERIC:// 如果当前Cell的Type为NUMERIC  
+            // 如果当前Cell的Type为NUMERIC
+            case Cell.CELL_TYPE_NUMERIC:
             case Cell.CELL_TYPE_FORMULA: {  
                 // 判断当前的cell是否为Date  
                 if (DateUtil.isCellDateFormatted(cell)) {  
@@ -709,17 +733,23 @@ public class WorkCallUserWeek extends WorkJob {
     	for(Map<String,Object> user:userAll) { //中心数据    	
     		List<Map<String,Object>> outData = new ArrayList<>();
     		int regionType = (int)user.get("regionType");
-    		List<Map<String,Object>> data = getWeekRegionTypeUsers(weekRegionTypeUsers,regionType); //中心对应的周梯形数据
-    		int nStart = 1; //最后一次的可用新人的周
+    		//中心对应的周梯形数据
+    		List<Map<String,Object>> data = getWeekRegionTypeUsers(weekRegionTypeUsers,regionType);
+    		//最后一次的可用新人的周
+    		int nStart = 1;
     		int nMinStart = 8;
-    		for(Map<String,Object> row:config) { //活动周期数据列表
+    		//活动周期数据列表
+    		for(Map<String,Object> row:config) {
         		int weekStart = (int)row.get("nWeekStart")-1;
         		int weekEnd = (int)row.get("nWeekEnd")-1;
-        		if(weekEnd>=nMinStart) { //判断活动区间内是否满足可使用新人的时间，默认8周(2月)后可以使用
-        			if(weekStart<nMinStart) { //如果活动起始周小于则取最小值
+        		//判断活动区间内是否满足可使用新人的时间，默认8周(2月)后可以使用
+        		if(weekEnd>=nMinStart) {
+        			//如果活动起始周小于则取最小值
+        			if(weekStart<nMinStart) {
         				weekStart = nMinStart;
         			}
-        			for(int i=weekStart;i<weekEnd;i++) { //活动周期内运行，因为i是下标为零开始，周是1开始，因此需要矫正
+        			//活动周期内运行，因为i是下标为零开始，周是1开始，因此需要矫正
+        			for(int i=weekStart;i<weekEnd;i++) {
         				Map<String,Object> rowData = data.get(i);
         				double total = 0;
         				for(int j=nStart;j<=i-nMinStart+1;j++) {
@@ -845,7 +875,8 @@ public class WorkCallUserWeek extends WorkJob {
 //        sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 20));  
 //        sheet.autoSizeColumn(5200);
         
-        Row row = sheet.createRow(0);    //创建第二行
+        //创建第二行
+        Row row = sheet.createRow(0);
         for(int i = 0;i < titleRow.length;i+=2){  
         	Cell cell = row.createCell(i/2);  
             cell.setCellValue(titleRow[i+1]);  

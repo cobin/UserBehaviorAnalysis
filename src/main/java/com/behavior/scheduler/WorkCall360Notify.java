@@ -12,7 +12,11 @@ import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper1110.CallTask1110Mapper;
 import com.cobin.util.CDate;
 import com.cobin.util.Tools;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:08
+ * @version 1.0
+*/
 public class WorkCall360Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -25,6 +29,7 @@ public class WorkCall360Notify extends WorkJob {
 		}
 	}
 
+	@Override
 	public void execWork(BehaviorMain bm,String qDate){
 		int sActDate = Tools.getInt(qDate) ;
 		if(qDate==null){
@@ -33,7 +38,9 @@ public class WorkCall360Notify extends WorkJob {
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class); 
 		CallTask1110Mapper ct1110 = bm.getMapper(CallTask1110Mapper.class);
 		int sDate = ct111.queryUserFunctionStat360Date();
-		if(sDate<20160822) sDate = 20160822;
+		if(sDate<20160822){
+			sDate = 20160822;
+		}
 		loadUser360(ct111, ct1110, sActDate,sDate,0);
 //		loadUser360Sample(ct111,sActDate,sDate);
 //		loadUser360(ct111, ct91, sActDate,sDate,5);

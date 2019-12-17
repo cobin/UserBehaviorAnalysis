@@ -15,9 +15,14 @@ import org.quartz.PersistJobDataAfterExecution;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:23
+ * @version 1.0
+ * DisallowConcurrentExecution //// 不允许并发执行
+*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution //// 不允许并发执行
+@DisallowConcurrentExecution
 public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -110,10 +115,12 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 							}
 						}
 					}
-					_compare.put("STATUS", 2);//表示此条记录存在，假设删除了，在后续中不需要执行删除操作
+					//表示此条记录存在，假设删除了，在后续中不需要执行删除操作
+					_compare.put("STATUS", 2);
 				}				
 				
-				if(!(isInsert || isUpdate)){//表示此纪录没有任何变化不需要处理
+				//表示此纪录没有任何变化不需要处理
+				if(!(isInsert || isUpdate)){
 					continue;
 				}
 				
@@ -130,7 +137,9 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 				
 				if(isInsert){
 					execCountInsert++;
-					if(buffInsert.length()>0) buffInsert.append(",");
+					if(buffInsert.length()>0){
+						buffInsert.append(",");
+					}
 					buffInsert.append("(");
 					for(String key:vals){					
 						buffInsert.append(r.get(key)).append(",");
@@ -153,7 +162,9 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 					}
 				}else{
 					execCountUpdate++;
-					if(buffUpdate.length()>0) buffUpdate.append(",");
+					if(buffUpdate.length()>0){
+						buffUpdate.append(",");
+					}
 					buffUpdate.append("(");
 					for(String key:vals){					
 						buffUpdate.append(r.get(key)).append(",");
@@ -192,9 +203,12 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 				_dLongUpdate = System.currentTimeMillis();
 				for(Map<Object,Object> r:compareResult){
 					int status = ((Integer)r.get("STATUS")).intValue();
-					if(status!=2) { //表示此条记录没有被删除过，则进行操作
+					//表示此条记录没有被删除过，则进行操作
+					if(status!=2) {
 						execCountUpdate++;
-						if(buffUpdate.length()>0) buffUpdate.append(",");								
+						if(buffUpdate.length()>0){
+							buffUpdate.append(",");
+						}
 						buffUpdate.append(r.get("PERSONID"));					
 						if(execCountUpdate%insertSize==0){
 							qDataUpdate.add(buffUpdate.toString());

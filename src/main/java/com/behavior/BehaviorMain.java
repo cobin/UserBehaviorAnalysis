@@ -12,8 +12,6 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 	private int once ;
 	private String clazz;
 	public static void main(String[] args) {
-		//=?gb18030?B?1rjEz9Xrx/61wLvutq/K/b7dMjAxNzAzMzEueGxzeA==?=
-//		System.out.println(CDate.getInstance().getDateToHour());
 		int once = 0;
 		String clazz = null;
 		for(String arg:args){
@@ -32,17 +30,15 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 	}
 	@Override
 	public void run() {
-		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					if (scheduler != null)
-						scheduler.shutdown();
-				} catch (SchedulerException e) {
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			try {
+				if (scheduler != null) {
+					scheduler.shutdown();
 				}
-				BehaviorServer.stopServer();
-				log.info("系统退出.");
+			} catch (SchedulerException e) {
 			}
+			BehaviorServer.stopServer();
+			log.info("系统退出.");
 		}));
 		
 		loadContext();
@@ -67,7 +63,7 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 			while (true) {
 				try {
 					Thread.sleep(nWait * 60 * 1000);
-					// log.debug("系统正在运行中");
+					// log.debug("系统正在运行中")
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -77,13 +73,12 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 
 	@Override
 	public void initLoadConfig() {
-		nWait = getConfig("web.cycle.wait", 1); // 分钟		
+		// 分钟
+		nWait = getConfig("web.cycle.wait", 1);
 	}
 
 	protected void startScheduler(){
 		try {
-//			String path = System.getProperty("behavior_config_path");
-//			System.out.println(path);
 			System.getProperties().put("org.quartz.properties", "./config/quartz.properties");
 			System.getProperties().put("org.quartz.plugin.jobInitializer.fileNames", "./config/quartz_data.xml");
 			scheduler = StdSchedulerFactory.getDefaultScheduler();
@@ -94,7 +89,8 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 			log.error("quartz启动异常!");
 		}
 	} 
-	private int nWait; // 轮询时间
+	/** 轮询时间 **/
+	private int nWait;
 	private Scheduler scheduler = null;
 }
 

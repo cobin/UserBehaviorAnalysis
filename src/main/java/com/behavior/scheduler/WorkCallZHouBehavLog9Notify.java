@@ -14,8 +14,14 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.cobin.util.CDate;
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:21
+ * @version 1.0
+ * DisallowConcurrentExecution //// 不允许并发执行
+*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution //// 不允许并发执行
+@DisallowConcurrentExecution
 public class WorkCallZHouBehavLog9Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -34,7 +40,8 @@ public class WorkCallZHouBehavLog9Notify extends WorkJob {
 		CallTask69Mapper ct69 = bm.getMapper(CallTask69Mapper.class);
 		String loadDate = bm.getConfig("behav.date");
 		if(loadDate==null || loadDate.length()<8) {
-			curQuery = null;//new CDate("2018-11-07 00:00:01").toDate();
+			//new CDate("2018-11-07 00:00:01").toDate();
+			curQuery = null;
 		}else {
 			curQuery =new CDate(loadDate).toDate();
 			log.debug("定点指定查询日期：" + curQuery);

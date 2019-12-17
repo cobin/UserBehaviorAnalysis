@@ -12,7 +12,11 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.cobin.util.CDate;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:23
+ * @version 1.0
+*/
 public class WorkCallZhouKeFlashMatureNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -24,7 +28,7 @@ public class WorkCallZhouKeFlashMatureNotify extends WorkJob {
 			e.printStackTrace();
 		}
 	}
-	
+	@Override
 	public void execWork(BehaviorMain bm,String qDate){
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class); 
 		CallTask69Mapper ct69 = bm.getMapper(CallTask69Mapper.class);

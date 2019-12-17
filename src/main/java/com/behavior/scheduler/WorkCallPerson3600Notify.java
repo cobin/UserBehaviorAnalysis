@@ -11,7 +11,11 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper1110.CallTask1110Mapper;
 import com.cobin.util.CDate;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:13
+ * @version 1.0
+*/ 
 public class WorkCallPerson3600Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -24,6 +28,7 @@ public class WorkCallPerson3600Notify extends WorkJob {
 		}
 	}
 
+	@Override
 	public void execWork(BehaviorMain bm,String qDate){
 		String sDate = qDate; 
 		if(qDate==null){			 

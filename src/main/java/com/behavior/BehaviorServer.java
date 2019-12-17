@@ -26,9 +26,12 @@ public class BehaviorServer extends BaseObject {
 	private void createServer() {
 		try{			
 			log.debug("监控服务启动...");
-			hs = HttpServer.create(new InetSocketAddress(29999),0);// 设置HttpServer的端口为80   
-			hs.createContext("/bm", new MyHandler());// 用MyHandler类内处理到/的请求   
-			hs.setExecutor(null); // creates a default executor   
+			// 设置HttpServer的端口为80
+			hs = HttpServer.create(new InetSocketAddress(29999),0);
+			// 用MyHandler类内处理到/的请求
+			hs.createContext("/bm", new MyHandler());
+			// creates a default executor
+			hs.setExecutor(null);
 			hs.start(); 
 		}catch(Exception ioe){
 			log.error(ioe);
@@ -87,17 +90,14 @@ public class BehaviorServer extends BaseObject {
 //				response = "{\"success\":\"true\",\"msg\":\""+Tools.urlEncode(sVs)+"\"}";
 			}else if(reqQuery.indexOf("WorkCall")!=-1) {
 				final String cla = reqQuery.substring(reqQuery.indexOf("WorkCall"));
-				new Thread(new Runnable() {					
-					@Override
-					public void run() {
-						try {
-							log.debug("执行>>"+cla);
-							Class<?> cl = Class.forName("com.behavior.scheduler."+cla.trim());
-							WorkJob job = (WorkJob)cl.newInstance();
-							job.execWork(behavior, null);
-						} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-							e.printStackTrace();
-						}
+				new Thread(() -> {
+					try {
+						log.debug("执行>>"+cla);
+						Class<?> cl = Class.forName("com.behavior.scheduler."+cla.trim());
+						WorkJob job = (WorkJob)cl.newInstance();
+						job.execWork(behavior, null);
+					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+						e.printStackTrace();
 					}
 				}).start();
 			}
@@ -123,8 +123,9 @@ public class BehaviorServer extends BaseObject {
 		cHttpServer.createServer();
 	}
 	public static void stopServer() {
-		if(cHttpServer!=null)
+		if(cHttpServer!=null) {
 			cHttpServer.stop();
+		}
 	}
 	private static BehaviorServer cHttpServer;
 }

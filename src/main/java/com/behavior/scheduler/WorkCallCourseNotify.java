@@ -1,10 +1,6 @@
 package com.behavior.scheduler;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.quartz.JobExecutionContext;
@@ -15,6 +11,9 @@ import com.behavior.mapper.mapper1111.CallTask1111Mapper;
 import com.cobin.util.CDate;
 import com.cobin.util.Tools;
 
+/**
+ * @author Cobin
+ */
 public class WorkCallCourseNotify extends WorkJob {
 	private int execStep = 0;
 	@Override
@@ -28,7 +27,9 @@ public class WorkCallCourseNotify extends WorkJob {
 				}catch(Exception ex) {
 					log.error(ex);
 				}
-				if(execStep==-1) break;
+				if(execStep==-1){
+					break;
+				}
 				int nWait = (execStep==0?10:5);
 				log.debug("调用课程处理失败，等待"+nWait+"分钟后再次执行.");
 				Thread.sleep(nWait*60*1000);
@@ -50,11 +51,11 @@ public class WorkCallCourseNotify extends WorkJob {
 		}
 		Map<Object,Object> qParam = new HashMap<>();
 		qParam.put("CalcDate", sDate);
-		//ct1111.updateUsersCourseVideo(qParam);
 		int r = 1;
 		log.info(TAG+">开始抓取课程数据:"+qParam);
 		if(execStep<1) {
-			ct1111.updateRoomDataByDate(qParam); //执行原始数据整合
+			//执行原始数据整合
+			ct1111.updateRoomDataByDate(qParam);
 			execStep=1;
 			log.info(TAG+">调用定时抓取课程结果："+qParam);
 			r = (Integer)qParam.get("return");
@@ -65,27 +66,32 @@ public class WorkCallCourseNotify extends WorkJob {
 			ct1111.updateUsersCourseInsureDate(qParam);
 			log.info(TAG+">调用抓取保险课程资源结果："+qParam);
 			if(execStep<2) {
-				ct1111.updateUsersCourse360Date(qParam); //更新360课程信息
+				//更新360课程信息
+				ct1111.updateUsersCourse360Date(qParam);
 				execStep=2;
 				log.info(TAG+">调用抓取360课程资源结果："+qParam);
 			}
 			if(execStep<3) {
-				ct1111.updateUsersCourse3600Date(qParam); //更新18000课程信息
+				//更新18000课程信息
+				ct1111.updateUsersCourse3600Date(qParam);
 				execStep=3;
 				log.info(TAG+">调用抓取3600课程资源结果："+qParam);
 			}
 			if(execStep<4) {
-				ct1111.updateUsersCourse18000Date(qParam); //更新18000课程信息
+				//更新18000课程信息
+				ct1111.updateUsersCourse18000Date(qParam);
 				execStep=4;
 				log.info(TAG+">调用抓取18000课程资源结果："+qParam);
 			}
 			if(execStep<5) {
-				ct1111.updateUsersCourse28800Date(qParam); //更新全部课程信息
+				//更新全部课程信息
+				ct1111.updateUsersCourse28800Date(qParam);
 				execStep=5;
 				log.info(TAG+">调用抓取28800课程资源结果："+qParam);
 			}
 			if(execStep<6) {
-				ct1111.updateUsersCourseAllDate(qParam); //更新全部课程信息
+				//更新全部课程信息
+				ct1111.updateUsersCourseAllDate(qParam);
 				execStep=6;
 				log.info(TAG+">调用抓取全部课程资源结果："+qParam);
 			}
@@ -96,7 +102,8 @@ public class WorkCallCourseNotify extends WorkJob {
 			ct1111.updateUserClassRoomStaticInsure(qParam);
 			log.info(TAG+">调用抓取保险课程用户统计结果："+qParam);
 			if(execStep<10) {
-				ct1111.updateUserClassRoomStatic360(qParam);//整合360
+				//整合360
+				ct1111.updateUserClassRoomStatic360(qParam);
 				execStep=10;
 				log.info(TAG+">调用抓取360课程用户统计结果："+qParam);
 			}
@@ -116,7 +123,8 @@ public class WorkCallCourseNotify extends WorkJob {
 				log.info(TAG+">调用抓取28800课程用户统计结果："+qParam);
 			}
 			if(execStep<14) {
-				ct1111.updateUserClassRoomStaticAll(qParam);//整合全部
+				//整合全部
+				ct1111.updateUserClassRoomStaticAll(qParam);
 				execStep=14;
 				log.info(TAG+">调用抓取全部课程用户统计结果："+qParam);
 			}
@@ -125,32 +133,6 @@ public class WorkCallCourseNotify extends WorkJob {
 			ct1111.updateUserClassRoomStatic3600Expand(qParam);
 			execStep=-1;
 			log.info(TAG+">调用抓取3600课程用户对比结果："+qParam);
-		}
-//		List<Map<Object,Object>> roomData = ct1111.queryRoomData(sDate);
-//		if(!roomData.isEmpty()) {
-//			writeRoomData(roomData);
-//		}
-	}
-	
-	protected void writeRoomData(List<Map<Object,Object>> roomData) {
-		String titles = "PersonId,RoomId,LoginTime,LogOutTime";
-		String[] title = titles.split(",");
-		FileOutputStream fs;
-		try {
-			fs = new FileOutputStream(new File("./logs/roomData_"+CDate.formatLongDate()+".csv"));
-			PrintStream p = new PrintStream(fs);
-			p.println(titles);
-			for(Map<Object,Object> map:roomData) {
-				String s = "";
-				for(String t:title) {
-					if(s.length()>0) s+=",";
-					s +=map.get(t);
-				}
-				p.println(s);
-			}
-			p.close();
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 }

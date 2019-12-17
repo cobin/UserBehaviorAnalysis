@@ -5,7 +5,11 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 import com.behavior.BehaviorMain;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:16
+ * @version 1.0
+*/
 @DisallowConcurrentExecution
 public class WorkCallTestNotify extends WorkJob {
 	@Override

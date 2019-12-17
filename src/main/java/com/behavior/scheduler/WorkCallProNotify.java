@@ -9,6 +9,11 @@ import org.quartz.JobExecutionException;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper91.CallTask91Mapper;
 
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:15
+ * @version 1.0
+*/
 public class WorkCallProNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {

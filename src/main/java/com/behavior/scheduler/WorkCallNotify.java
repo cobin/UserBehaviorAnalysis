@@ -15,7 +15,11 @@ import com.behavior.mapper.mapper76.CallTask76Mapper;
 import com.behavior.mapper.mapper91.CallTask91Mapper;
 import com.cobin.util.CDate;
 import com.cobin.util.Tools;
-
+/**
+ * @author  Cobin
+ * @date    2019/12/17 17:10
+ * @version 1.0
+*/
 public class WorkCallNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -69,7 +73,8 @@ public class WorkCallNotify extends WorkJob {
 		if(newClass.size()>0){
 			log.debug(TAG+">"+sDate+"有新号记录:"+newClass.size());
 		}
-		callTask(ct111,newClass,1);//新号	
+		//新号
+		callTask(ct111,newClass,1);
 		newClass.clear();
 		newClass = null;
 		for(Map<Object,Object> row:newClassAll){			
@@ -94,7 +99,7 @@ public class WorkCallNotify extends WorkJob {
 			callTask(ct111, ct76, ct91, qList, sDate);
 		}
 	}
-	//只获取此分号用户的第一次通话所在天的通话记录
+	/**只获取此分号用户的第一次通话所在天的通话记录*/
 	protected void loadUserPhone(CallTask111Mapper ct111,CallTask91Mapper ct91,String sDate){
 		int execCount=0;
 		int nDate = ct111.queryPhoneMaxDate();
@@ -105,9 +110,9 @@ public class WorkCallNotify extends WorkJob {
 			sDate+="000000";
 		}
 		CDate qDate = new CDate(sDate);
-		if(nDate>0)
+		if(nDate>0) {
 			qDate.addDate(-7);
-		
+		}
 		int classDate = ct111.queryNewClassMaxDate();
 		CDate cqDate = new CDate(""+classDate);		
 		List<List<Map<Object,Object>>> qList = new ArrayList<>();
@@ -206,7 +211,8 @@ public class WorkCallNotify extends WorkJob {
 		}
 		if(result.size()>0){
 			log.debug(TAG+">"+sDate+"有通话记录:"+result.size());
-			callTask(ct111,result,2);//通话日志
+			//通话日志
+			callTask(ct111,result,2);
 		}
 	}
 	
@@ -267,12 +273,14 @@ public class WorkCallNotify extends WorkJob {
 		List<Map<Object,Object>> result = ct76.queryLoginOnline(cList,7);
 		if(result.size()>0){
 			log.debug(TAG+">"+sDate+"有登录记录:"+result.size());
-			callTask(ct111,result,3);//登录日志
+			//登录日志
+			callTask(ct111,result,3);
 		}
 		result = ct91.queryNerve(cList,7);
 		if(result.size()>0){
 			log.debug(TAG+">"+sDate+"有订单记录:"+result.size());
-			callTask(ct111,result,4);//订单
+			//订单
+			callTask(ct111,result,4);
 		}
 	}
 	
