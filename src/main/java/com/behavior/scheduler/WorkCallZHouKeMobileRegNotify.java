@@ -16,14 +16,8 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 
-/**
- * @author  Cobin
- * @date    2019/7/24 17:04
- * @version 1.0
- * @DisallowConcurrentExecution 不允许并发执行
-*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -48,21 +42,21 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 		}
 	}
 	
-	private int loadCustPresale(CallTask111Mapper ct111, CallTask69Mapper ct69, int personId){
+	protected int loadCustPresale(CallTask111Mapper ct111,CallTask69Mapper ct69,int personId){
 		try{
-			StringBuilder buffInsert = new StringBuilder();
-			StringBuilder buffUpdate = new StringBuilder();
-			Map<Integer,Map<Object,Object>> mapCompareResult ;
+			StringBuffer buffInsert = new StringBuffer();
+			StringBuffer buffUpdate = new StringBuffer();
+			Map<Integer,Map<Object,Object>> mapCompareResult = null;
 			List<Map<Object,Object>> result = ct69.queryEbMobileRegLog(personId, rowCount);
 			log.debug(Thread.currentThread().getName()+">"+TAG+">Oracle-MobileReg同步区间:<"+personId+">,总数为:"+result.size());
-			List<Map<Object,Object>> compareResult ;
+			List<Map<Object,Object>> compareResult = null ;
 			if(result.size()>0){
 				personId = ((BigDecimal)result.get(result.size()-1).get("PERSONID")).intValue();
 				int sPersonId =  ((BigDecimal)result.get(0).get("PERSONID")).intValue();
 				compareResult = ct111.queryEbMobileRegLog(sPersonId, personId);
 				mapCompareResult = new HashMap<>(compareResult.size());
 				for(Map<Object,Object> tmpMv:compareResult) {
-					mapCompareResult.put((Integer) tmpMv.get("PERSONID"), tmpMv);
+					mapCompareResult.put(((Integer)tmpMv.get("PERSONID")).intValue(), tmpMv);
 				}
 				log.debug(Thread.currentThread().getName()+">"+TAG+">Oracle-MobileReg同步区间:<"+personId+">,总数为:"+result.size()+",已有:"+compareResult.size());	
 			}else{
@@ -81,12 +75,10 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 				boolean isUpdate = false;
 				int _personId = ((BigDecimal)r.get("PERSONID")).intValue();
 				Map<Object,Object> _compare = mapCompareResult.get(_personId);
-				//for循环遍历改为map查找，提高效率
-				if(_compare!=null)
+				if(_compare!=null) //for循环遍历改为map查找，提高效率
 				{
 					isInsert = false;
-					//以前删除过，现在又出现，需要更新
-					int nStatus = (Integer)_compare.get("STATUS");
+					int nStatus = (Integer)_compare.get("STATUS");//以前删除过，现在又出现，需要更新
 					if(nStatus==2){
 						isUpdate = true;
 					}else{
@@ -105,12 +97,12 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 										break;
 									}
 								}else if(obj instanceof BigDecimal){
-									if((Integer) _compare.get(key) !=((BigDecimal)obj).intValue()){
+									if(((Integer)_compare.get(key)).intValue()!=((BigDecimal)obj).intValue()){
 										isUpdate = true;
 										break;
 									}
 								}else{								
-									if(!(objc.toString()).equals(obj.toString())){
+									if(!((String)objc).equals(obj.toString())){
 										isUpdate = true;
 										break;
 									}
@@ -118,22 +110,27 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 							}
 						}
 					}
-					//表示此条记录存在，假设删除了，在后续中不需要执行删除操作
-					_compare.put("STATUS", 2);
+					_compare.put("STATUS", 2);//表示此条记录存在，假设删除了，在后续中不需要执行删除操作
 				}				
 				
-				//表示此纪录没有任何变化不需要处理
-				if(!(isInsert || isUpdate)){
+				if(!(isInsert || isUpdate)){//表示此纪录没有任何变化不需要处理
 					continue;
 				}
-
-				changeMapVal(keys,r);
+				
+				for(String key:keys){
+					Object obj = r.get(key);
+					if(obj==null){
+						r.put(key, "NULL");
+					}else if(obj instanceof String){
+						r.put(key, "'"+obj+"'");
+					}else if(obj instanceof Date){
+						r.put(key, "'"+obj+"'");
+					}				
+				}
 				
 				if(isInsert){
 					execCountInsert++;
-					if(buffInsert.length()>0){
-						buffInsert.append(",");
-					}
+					if(buffInsert.length()>0) buffInsert.append(",");
 					buffInsert.append("(");
 					for(String key:vals){					
 						buffInsert.append(r.get(key)).append(",");
@@ -156,9 +153,7 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 					}
 				}else{
 					execCountUpdate++;
-					if(buffUpdate.length()>0){
-						buffUpdate.append(",");
-					}
+					if(buffUpdate.length()>0) buffUpdate.append(",");
 					buffUpdate.append("(");
 					for(String key:vals){					
 						buffUpdate.append(r.get(key)).append(",");
@@ -196,13 +191,10 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 				qDataUpdate.clear();
 				_dLongUpdate = System.currentTimeMillis();
 				for(Map<Object,Object> r:compareResult){
-					int status = (Integer) r.get("STATUS");
-					//表示此条记录没有被删除过，则进行操作
-					if(status!=2) {
+					int status = ((Integer)r.get("STATUS")).intValue();
+					if(status!=2) { //表示此条记录没有被删除过，则进行操作
 						execCountUpdate++;
-						if(buffUpdate.length()>0){
-							buffUpdate.append(",");
-						}
+						if(buffUpdate.length()>0) buffUpdate.append(",");								
 						buffUpdate.append(r.get("PERSONID"));					
 						if(execCountUpdate%insertSize==0){
 							qDataUpdate.add(buffUpdate.toString());
@@ -252,6 +244,6 @@ public class WorkCallZHouKeMobileRegNotify extends WorkJob {
 	           "FROMWHERE",
 	           "DOMAIN"};
 	private String[] keys = {"CREATETIME","CUSTESTACT1","FINISHTIME","FIRSTALLOCTIME","FROMWHERE","DOMAIN"};
-	private static final int rowCount = 50000;
+	public static final int rowCount = 50000;
 	public static final int insertSize = 550;	
 }

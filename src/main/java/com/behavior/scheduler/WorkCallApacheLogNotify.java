@@ -17,13 +17,8 @@ import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
-/**
- * @author  Cobin
- * @date    2019/7/24 16:35
- * @version 1.0
-*/
-public class WorkCallApacheLogNotify extends WorkJob {
 
+public class WorkCallApacheLogNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
 		try {
@@ -37,18 +32,14 @@ public class WorkCallApacheLogNotify extends WorkJob {
 	
 	
 	public boolean downApacheLog(String[] fNames,String sDate) {
-		// SSH连接用户名
-		String user = "dataReader1";
-		// SSH连接密码
-		String password = "dataReader123";
-		// SSH服务器
-		String host = "172.17.161.75";
-		// SSH访问端口
-		int port = 22;
+		String user = "dataReader1";// SSH连接用户名
+		String password = "dataReader123";// SSH连接密码
+		String host = "172.17.161.75";// SSH服务器
+		int port = 22;// SSH访问端口
 		Session session = null;
 		
 		try {
-			/* log.debug("JRE:"+System.getProperty("java.version")+"("+System.getProperty("sun.arch.data.model")+")"); */
+//			log.debug("JRE:"+System.getProperty("java.version")+"("+System.getProperty("sun.arch.data.model")+")");
 			JSch jsch = new JSch();			
 			session = jsch.getSession(user, host, port);
 			session.setPassword(password);
@@ -62,8 +53,8 @@ public class WorkCallApacheLogNotify extends WorkJob {
 			sftp.cd("/var/log/web/cweb/log");
 //			String[] fNames={"firstin","dounlock","unlock","lockstate"};
 			File fDir = new File("./apacheLog");
-			if(!fDir.exists() && fDir.mkdirs()){
-				return false;
+			if(!fDir.exists()){
+				fDir.mkdirs();
 			}
 			for(String _fName:fNames){
 				String fName = _fName+"_"+sDate;
@@ -92,13 +83,12 @@ public class WorkCallApacheLogNotify extends WorkJob {
 		String sDate =  cDate.getShortDate();
 		File fexit = new File("apacheLog/unlock_"+sDate);
 		if(fexit.exists()){
-			log.info("日志已经处理过，不重复处理。");
+			log.debug("日志已经处理过，不重复处理。");
 			return;
 		}
 		
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class);
-		//"firstin","lockstate","dounlock",
-		String[] sfromTypes = new String[]{"firstin","lockstate","dounlock","unlock"};
+		String[] sfromTypes = new String[]{"firstin","lockstate","dounlock","unlock"}; //"firstin","lockstate","dounlock",
 		
 //		while(cDate.getTime()<System.currentTimeMillis()-24*60*60*1000){		
 //		String sDate =  CDate.addShortCDate(-1);
@@ -154,8 +144,7 @@ public class WorkCallApacheLogNotify extends WorkJob {
 			String[] sV = line.substring(line.indexOf("?")+1).split("&");
 			Map<String,Object> mV = new HashMap<>();
 			for(String s:sV){
-				//
-				String[] svv = s.replaceAll("[ \"](.)+", "").split("=");
+				String[] svv = s.replaceAll("[ \"](.)+", "").split("=");//
 				if(svv.length>1){
 					try{
 						mV.put(svv[0], java.net.URLDecoder.decode(svv[svv.length-1],"GBK"));
@@ -180,13 +169,11 @@ public class WorkCallApacheLogNotify extends WorkJob {
 			}
 //			try{
 				ct111.insertApacheLog(mV);
-/*
-			}catch(Exception ex){
-				log.debug(mV);
-			}
-*/
-		}
-		log.info(String.format("%s,读取总行数:%d",fileName,readSize));
+//			}catch(Exception ex){
+//				log.debug(mV);
+//			}
+		} 
+		log.debug(String.format("%s,读取总行数:%d",fileName,readSize));
 		return true;
 	}
 	
@@ -203,8 +190,7 @@ public class WorkCallApacheLogNotify extends WorkJob {
 		}else if("lockstate".equals(sFromType)){
 			return 81;
 		}else if("cover".equals(sFromType)){
-			//首页
-			return 11;
+			return 11; //首页
 		}
 		return 999999;
 	}

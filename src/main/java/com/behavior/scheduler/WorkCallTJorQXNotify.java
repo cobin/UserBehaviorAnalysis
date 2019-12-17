@@ -14,11 +14,6 @@ import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper91.CallTask91Mapper;
 import com.cobin.util.CDate;
 
-/**
- * @author  Cobin
- * @date    2019/7/24 16:58
- * @version 1.0
- */
 public class WorkCallTJorQXNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -31,8 +26,7 @@ public class WorkCallTJorQXNotify extends WorkJob {
 		}
 	}
 
-	@Override
-    public void execWork(BehaviorMain bm, String qDate){
+	public void execWork(BehaviorMain bm,String qDate){
 		String sDate = qDate; 
 		if(qDate==null){			 
 			sDate = CDate.formatShortDate(System.currentTimeMillis()-24*60*60*4*1000);
@@ -42,10 +36,8 @@ public class WorkCallTJorQXNotify extends WorkJob {
 		CDate date = new CDate(sDate);
 		while(date.getTime()<System.currentTimeMillis()){
 			//加载用户成单之前的查看股票情况
-			//推荐
-			loadUser(ct111,ct91,"7,11",date.getIntDate(),1);
-			//清洗
-			loadUser(ct111,ct91,"5,20",date.getIntDate(),2);
+			loadUser(ct111,ct91,"7,11",date.getIntDate(),1); //推荐
+			loadUser(ct111,ct91,"5,20",date.getIntDate(),2); //清洗
 			date.addDate(1);
 		}
 	}
@@ -138,11 +130,10 @@ public class WorkCallTJorQXNotify extends WorkJob {
 			qData.add(iData);
 		}
 		if(qData.size()>0){
-			if(nType==1) {
+			if(nType==1)
 				ct111.insertUserActiveStocksTJ(qData);
-			}else {
+			else
 				ct111.insertUserActiveStocksQX(qData);
-			}
 		}
 	}
 	

@@ -1,58 +1,35 @@
 package com.behavior.base;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-/**
- * @author think
- */
 public abstract class BaseService {
 	protected Log log = LogFactory.getLog(getClass());
 
 	public BaseService() {
-		reloadConfig();
-	}
-
-	public void reloadConfig() {
-		Reader reader = null ;
-		try {
-			log.info("加载配置文件...");
-			properties = new Properties();
-			File f = new File("config/conf.ini");
-			if (f.exists()) {
-				reader = new InputStreamReader(new java.io.FileInputStream(f), "UTF-8");
-				properties.load(reader);
-			}
-		} catch (FileNotFoundException e) {
-			log.error(e);
-		} catch (IOException e) {
-			log.error(e);
-		} finally {
-			if(reader!=null){
-				try {
-					reader.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+		log.debug("读取配置文件.");
+		properties = new Properties();
+		File f = new File("config/conf.ini");
+		if (f.exists()) {
+			try {
+				properties.load(new InputStreamReader(new java.io.FileInputStream(f), "UTF-8"));
+			} catch (Exception e) {
+				log.error(e);
 			}
 		}
 		initLoadConfig();
 	}
+
 
 	public int getConfig(String key, int defVal) {
 		if (properties.containsKey(key)) {
 			try {
 				return Integer.parseInt(properties.getProperty(key));
 			} catch (Exception e) {
-
 			}
 		}
 		return defVal;
@@ -68,10 +45,6 @@ public abstract class BaseService {
 		return defVal;
 	}
 
-	public String getConfig(String key){
-		return getConfig(key,null);
-	}
-
 	public String getConfig(String key, String defVal) {
 		if (properties.containsKey(key)) {
 			return properties.getProperty(key);
@@ -79,13 +52,10 @@ public abstract class BaseService {
 		return defVal;
 	}
 
-	public Properties getConfig() {
+	public Properties getProperties() {
 		return this.properties;
 	}
 
-	public String getConfigVals() {
-		return properties.toString();
-	}
 	public abstract void initLoadConfig();
 
 	private Properties properties;

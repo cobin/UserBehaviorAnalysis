@@ -11,14 +11,8 @@ import org.quartz.PersistJobDataAfterExecution;
 
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper1112.CallTask1112Mapper;
-/**
- * @author  Cobin
- * @date    2019/7/24 16:59
- * @version 1.0
- * @DisallowConcurrentExecution 不允许并发执行
-*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallWapPcAdeptNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {

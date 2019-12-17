@@ -11,11 +11,7 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper1110.CallTask1110Mapper;
 import com.cobin.util.CDate;
-/**
- * @author  Cobin
- * @date    2019/7/24 16:47
- * @version 1.0
-*/
+
 public class WorkCallPerson3600Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -28,8 +24,7 @@ public class WorkCallPerson3600Notify extends WorkJob {
 		}
 	}
 
-	@Override
-	public void execWork(BehaviorMain bm, String qDate){
+	public void execWork(BehaviorMain bm,String qDate){
 		String sDate = qDate; 
 		if(qDate==null){			 
 			sDate = CDate.formatShortDate(System.currentTimeMillis()-24*60*60*4*1000);
@@ -86,7 +81,17 @@ public class WorkCallPerson3600Notify extends WorkJob {
 	public void callUserFunctionStat(CallTask111Mapper ct111,int logDate,List<List<Map<Object,Object>>> qList){
 		List<Map<Object,Object>> result = ct111.queryUserFunctionStat(logDate,qList,null);
 		List<List<Map<Object,Object>>> qData = new ArrayList<>();
-		intoData(qData,result,insertSize);
+		List<Map<Object,Object>> iData = new ArrayList<>();
+		for(Map<Object,Object> r:result){
+			iData.add(r);
+			if(iData.size()>=insertSize){
+				qData.add(iData);
+				iData = new ArrayList<>();
+			}
+		}
+		if(iData.size()>0){
+			qData.add(iData);
+		}
 		if(qData.size()>0){
 			ct111.insertUserFunctionStat3600(qData); 
 		}
@@ -96,7 +101,17 @@ public class WorkCallPerson3600Notify extends WorkJob {
 		try{
 			List<Map<Object,Object>> result = ct111.queryUserActiveStocks(logDate,qList);
 			List<List<Map<Object,Object>>> qData = new ArrayList<>();
-			intoData(qData,result,insertSize);
+			List<Map<Object,Object>> iData = new ArrayList<>();
+			for(Map<Object,Object> r:result){			
+				iData.add(r);
+				if(iData.size()>=insertSize){
+					qData.add(iData);
+					iData = new ArrayList<>();
+				}
+			}
+			if(iData.size()>0){
+				qData.add(iData);
+			}
 			if(qData.size()>0){			
 				ct111.insertUserActiveStocks3600(qData);
 			}

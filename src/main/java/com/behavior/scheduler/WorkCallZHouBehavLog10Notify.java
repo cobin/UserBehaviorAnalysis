@@ -13,14 +13,8 @@ import org.quartz.PersistJobDataAfterExecution;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
-/**
- * @author  Cobin
- * @date    2019/7/24 17:02
- * @version 1.0
- * @DisallowConcurrentExecution  不允许并发执行
-*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallZHouBehavLog10Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -66,17 +60,16 @@ public class WorkCallZHouBehavLog10Notify extends WorkJob {
 			log.debug(Thread.currentThread().getName()+">"+TAG+">Oracle-Behaviour同步总数为:"+result.size());	
 			for(Map<Object,Object> r:result){
 				execCount++;
-				changeMapVal(keys,r);
-//				for(String key:keys){
-//					Object obj = r.get(key);
-//					if(obj==null){
-//						r.put(key, "NULL");
-//					}else if(obj instanceof String){
-//						r.put(key, "'"+obj+"'");
-//					}else if(obj instanceof Date){
-//						r.put(key, "'"+obj+"'");
-//					}
-//				}
+				for(String key:keys){
+					Object obj = r.get(key);
+					if(obj==null){
+						r.put(key, "NULL");
+					}else if(obj instanceof String){
+						r.put(key, "'"+obj+"'");
+					}else if(obj instanceof Date){
+						r.put(key, "'"+obj+"'");
+					}				
+				}
 				iData.add(r);
 				if(iData.size()>=insertSize){
 					qData.add(iData);
@@ -103,7 +96,7 @@ public class WorkCallZHouBehavLog10Notify extends WorkJob {
 	}
 	
 	private String[] keys = {"USERCARD","MEMO","PARAM1","PARAM2","PARAM3","PARAM4","PARAM5","PARAM6","SERVICEID","S3"};
-	private static final int loadSubTime = 6*3600000;
+	public static final int loadSubTime = 6*3600000;
 	private Date curQuery = null;
 	public static final int insertSize = 1000;
 }

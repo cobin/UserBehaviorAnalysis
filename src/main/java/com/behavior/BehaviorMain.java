@@ -8,20 +8,17 @@ import com.behavior.base.BaseImpService;
 import com.behavior.scheduler.WorkJob;
 import com.cobin.util.Tools;
 
-/**
- * @author think
- */
 public class BehaviorMain extends BaseImpService implements Runnable{
 	private int once ;
 	private String clazz;
 	public static void main(String[] args) {
-		/*=?gb18030?B?1rjEz9Xrx/61wLvutq/K/b7dMjAxNzAzMzEueGxzeA==?=
-		System.out.println(CDate.getInstance().getDateToHour());*/
+		//=?gb18030?B?1rjEz9Xrx/61wLvutq/K/b7dMjAxNzAzMzEueGxzeA==?=
+//		System.out.println(CDate.getInstance().getDateToHour());
 		int once = 0;
 		String clazz = null;
 		for(String arg:args){
 			if(arg.startsWith("-once=")){
-				once =  Tools.getInt(arg.substring(6).trim());
+				once =  Tools.getInt(arg.substring(6).trim()); 
 			}else if(arg.startsWith("WorkCall")) {
 				once = 1;
 				clazz = arg;
@@ -35,15 +32,17 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 	}
 	@Override
 	public void run() {
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			try {
-				if (scheduler != null) {
-					scheduler.shutdown();
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					if (scheduler != null)
+						scheduler.shutdown();
+				} catch (SchedulerException e) {
 				}
-			} catch (SchedulerException e) {
+				BehaviorServer.stopServer();
+				log.info("系统退出.");
 			}
-			BehaviorServer.stopServer();
-			log.info("系统退出.");
 		}));
 		
 		loadContext();
@@ -52,7 +51,7 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 				String[] clas = clazz.split("\\|");
 				for(String cla:clas) {
 					try {
-						log.info("执行>>"+cla);
+						log.debug("执行>>"+cla);
 						Class<?> cl = Class.forName("com.behavior.scheduler."+cla.trim());
 						WorkJob job = (WorkJob)cl.newInstance();
 						job.execWork(this, null);
@@ -62,12 +61,13 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 				}
 			}
 		}else{
+			log.info(Tools.getRuntimeMemory());
 			startScheduler();
 			BehaviorServer.startServer(this);
 			while (true) {
 				try {
 					Thread.sleep(nWait * 60 * 1000);
-					/* log.debug("系统正在运行中"); */
+					// log.debug("系统正在运行中");
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -77,12 +77,13 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 
 	@Override
 	public void initLoadConfig() {
-		// 分钟
-		nWait = getConfig("web.cycle.wait", 1);
+		nWait = getConfig("web.cycle.wait", 1); // 分钟		
 	}
 
-	private void startScheduler(){
+	protected void startScheduler(){
 		try {
+//			String path = System.getProperty("behavior_config_path");
+//			System.out.println(path);
 			System.getProperties().put("org.quartz.properties", "./config/quartz.properties");
 			System.getProperties().put("org.quartz.plugin.jobInitializer.fileNames", "./config/quartz_data.xml");
 			scheduler = StdSchedulerFactory.getDefaultScheduler();
@@ -92,11 +93,8 @@ public class BehaviorMain extends BaseImpService implements Runnable{
 		} catch (SchedulerException e) {
 			log.error("quartz启动异常!");
 		}
-	}
-	/**
-	 * 轮询时间
-	 */
-	private int nWait;
+	} 
+	private int nWait; // 轮询时间
 	private Scheduler scheduler = null;
 }
 

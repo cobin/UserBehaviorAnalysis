@@ -1,0 +1,1027 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper9101.CallTask9101Mapper" > 
+<!-- 测试中文，中文数据库字段必须是NVARCHAR类型，否则VARCHAR类型乱码 -->
+	<select id="testChinese" parameterType="Map" resultType="Map">
+		SELECT cast('符合条件的小单活动' as NVARCHAR(100)) as name
+		UNION
+		SELECT '其实时间，结束时间'
+	</select>
+	<select id="queryConfig" parameterType="Map" resultType="Map">
+		<!--符合条件的小单活动，启始周，结束周，其实时间，结束时间 -->
+		SELECT * FROM (
+			SELECT relation_yusuanId as ActId ,cast(ActType as INT) as ActType,DATEDIFF(DAY,CAST(#{startDate} AS DATE),StartDate)/7+1 AS nWeekStart
+			,DATEDIFF(DAY,CAST(#{endDate} AS DATE),EndDate)/7+1 AS nWeekEnd
+			,CONVERT(VARCHAR,StartDate,112) AS startDate,CONVERT(VARCHAR,EndDate,112) AS endDate
+			FROM DB_WebNerveData.dbo._ForecastAnalysis_Act_Config 
+			WHERE ActType in ( 1,2,3) AND DATEDIFF(DAY,CAST(#{startDate} AS DATE),EndDate)>0 and relation_yusuanId is not null
+		) a WHERE a.nWeekEnd>0
+		order by a.nWeekEnd
+	</select>
+	
+	<resultMap type="Map" id="resultMap"></resultMap>
+	
+	<select id="queryDepartRate" parameterType="Map" resultMap="resultMap,resultMap">
+		IF OBJECT_ID('tempdb..#Persons') is NOT NULL
+			DROP TABLE #Persons
+	
+		SELECT a.sdate,a.personId,a.value
+		INTO #Persons
+		FROM [DB_WebNerveData].[dbo].[_Human_Person_ChangeData_row_log] a 
+		INNER JOIN (
+			SELECT a.personId,a.DataType,MAX(sdate)  AS sdate
+			FROM [DB_WebNerveData].[dbo].[_Human_Person_ChangeData_row_log] a
+			WHERE a.DataType=4 AND a.Sdate&lt;#{startDate}
+			GROUP BY a.personId,a.DataType
+		) b ON a.personId=b.personId AND a.Sdate=b.sdate AND a.DataType=b.DataType
+	
+		IF OBJECT_ID('tempdb..#CurPerson') is NOT NULL
+			DROP TABLE #CurPerson
+	
+		SELECT a.sdate,a.personId,a.value
+		INTO #CurPerson
+		FROM [DB_WebNerveData].[dbo].[_Human_Person_ChangeData_row_log] a 
+		INNER JOIN (
+			SELECT a.personId,a.DataType,MAX(sdate)  AS sdate
+			FROM [DB_WebNerveData].[dbo].[_Human_Person_ChangeData_row_log] a
+			WHERE a.DataType=1 AND a.Sdate&lt;#{startDate}
+			GROUP BY a.personId,a.DataType
+		) b ON a.personId=b.personId AND a.Sdate=b.sdate AND a.DataType=b.DataType
+	
+		IF OBJECT_ID('tempdb..#Region') is NOT NULL
+			DROP TABLE #Region
+	
+		SELECT a.sdate,a.personId,a.value
+		INTO #Region
+		FROM [DB_WebNerveData].[dbo].[_Human_Person_ChangeData_row_log] a 
+		INNER JOIN (
+			SELECT a.personId,a.DataType,MAX(sdate)  AS sdate
+			FROM [DB_WebNerveData].[dbo].[_Human_Person_ChangeData_row_log] a
+			WHERE a.DataType=8 AND a.Sdate&lt;#{startDate}
+			GROUP BY a.personId,a.DataType
+		) b ON a.personId=b.personId AND a.Sdate=b.sdate AND a.DataType=b.DataType
+		
+		IF OBJECT_ID('tempdb..#PullUpUser') is NOT NULL
+			DROP TABLE #PullUpUser
+			
+		CREATE TABLE #PullUpUser(regionType int,pullUser int,primary key(regionType));
+		
+		insert into #PullUpUser VALUES(11,207),(12,169),(13,180),(41,232),(61,0)
+	
+		<!-- 各个中心人数 -->
+		SELECT a.*,b.pullUser,a.allUserCount-b.pullUser as userCount
+		FROM(
+			SELECT a.regionType,COUNT(*) AS allUserCount
+			FROM (
+				SELECT b.personId,b.value AS adpetId,c.value AS regionType
+				FROM #CurPerson a
+				INNER JOIN #Persons b ON a.personId=b.personId
+				INNER JOIN #Region c ON a.personId=c.personId
+				WHERE a.value=0
+			) a 		
+			WHERE a.regionType IN (11,12,13,41,61)
+			GROUP BY a.regionType
+		) a
+		INNER JOIN #PullUpUser b on a.regionType=b.regionType
+		ORDER BY a.regionType
+		
+		<!-- 各个部门人数及占比  -->
+		SELECT a.*
+			,cast(c.deptName as NVARCHAR(200)) as deptName
+			,a.userCount*1.0/b.userCount AS rate 
+		FROM (
+			SELECT a.regionType,a.adpetId,COUNT(*) AS userCount
+			FROM (
+			SELECT b.personId,b.value AS adpetId,c.value AS regionType
+			FROM #CurPerson a
+			INNER JOIN #Persons b ON a.personId=b.personId
+			INNER JOIN #Region c ON a.personId=c.personId
+			WHERE a.value=0
+			) a 
+			GROUP BY a.regionType,a.adpetId		
+		) a 
+		INNER JOIN (
+			SELECT a.regionType,COUNT(*) AS userCount	
+			FROM (
+			SELECT b.personId,b.value AS adpetId,c.value AS regionType
+			FROM #CurPerson a
+			INNER JOIN #Persons b ON a.personId=b.personId
+			INNER JOIN #Region c ON a.personId=c.personId
+			WHERE a.value=0
+			) a 
+			WHERE a.regionType IN (11,12,13,41,61)
+			GROUP BY a.regionType		
+		) b ON a.regionType=b.regionType
+		INNER JOIN [DBNERVE].[dbo].[_Human_Department] c ON a.adpetId=c.deptId
+		ORDER BY a.regionType
+			
+	</select>
+	<select id="queryWeekUsersTrapezium" parameterType="Map" resultMap="resultMap,resultMap,resultMap">
+		<!---建立配置表-->
+		<!---周，5个分中心（离职率，招聘人数）-->
+		IF OBJECT_ID('tempdb..#ConfigPersonnel') is NOT NULL
+			DROP TABLE #ConfigPersonnel
+		CREATE TABLE #ConfigPersonnel(
+			 WeekId INT <!--周标识-->
+			,RegionType INT<!--中心标识-->
+			,SZRecruitCount INT<!--社招招聘人数-->
+			,NJRecruitCount INT<!--内介招聘人数-->
+			,PRIMARY KEY(WeekId,RegionType)
+		);
+		
+		IF OBJECT_ID('tempdb..#ConfigRetention') is NOT NULL
+			DROP TABLE #ConfigRetention
+		CREATE TABLE #ConfigRetention(
+			 WeekId INT <!--周标识-->
+			,RegionType INT<!--中心标识-->
+			,NewSZTurnoverRate FLOAT<!--社招留存率-->
+			,NewNJTurnoverRate FLOAT<!--内介留存率-->
+			,OldTurnoverRate FLOAT <!--老人留存率-->
+			,PRIMARY KEY(WeekId,RegionType)
+		);
+
+		
+		<!---初始化数据 -->
+		INSERT INTO #ConfigRetention
+		        ( WeekId ,
+		          RegionType ,
+		          NewSZTurnoverRate ,
+		          NewNJTurnoverRate ,
+		          OldTurnoverRate
+		        )
+		VALUES  
+		<foreach collection="configRetention" index="index" item="mapV" open="" separator="," close="">
+		  	(${mapV.WeekId},${mapV.RegionType},${mapV.NewSZTurnoverRate},${mapV.NewNJTurnoverRate},${mapV.OldTurnoverRate})
+		</foreach>
+		;
+		
+				
+		<!---初始化数据-->
+		INSERT INTO #ConfigPersonnel
+		        ( WeekId ,
+		          RegionType ,
+		          SZRecruitCount ,
+				  NJRecruitCount 
+		        )
+		VALUES  
+		<foreach collection="configPersonnel" index="index" item="mapV" open="" separator="," close="">
+		  	(${mapV.WeekId},${mapV.RegionType},${mapV.SZRecruitCount},${mapV.NJRecruitCount})
+		</foreach>
+		;
+		
+		IF OBJECT_ID('tempdb..#ConfigOldUser') is NOT NULL
+			DROP TABLE #ConfigOldUser
+		<!--老人配置信息-->
+		CREATE TABLE #ConfigOldUser(
+			RegionType INT  <!-- 中心标识 -->
+			,allOldUserCount FLOAT <!-- 全部老人 -->
+			,oldUserCount FLOAT <!-- 老人数目 -->
+			,PRIMARY KEY(RegionType)
+		);
+		INSERT INTO #ConfigOldUser
+		        ( RegionType,allOldUserCount, oldUserCount )
+		VALUES  
+		<foreach collection="configOldUser" index="index" item="mapV" open="" separator="," close="">
+		  	(${mapV.regionType},${mapV.allUserCount},${mapV.userCount})
+		</foreach>
+		;
+		
+		<!---留存人数-->
+		IF OBJECT_ID('tempdb..#Retained') is NOT NULL
+			DROP TABLE #Retained
+		
+		CREATE TABLE #Retained(
+			WeekId INT <!--周 -->
+			,RegionType INT <!--中心标识 -->
+			,DataType INT <!-- 1社招，2内介绍,3老人 -->
+			,WeekNum INT <!--每周情况 -->
+			,DataVal FLOAT <!--留存人数 -->
+			,PRIMARY KEY(WeekId,RegionType,DataType,WeekNum)
+		);
+		
+		
+		DECLARE @RegionId INT = 61
+		DECLARE @oldUserCount FLOAT,@allOldUserCount FLOAT
+		DECLARE config_cursor CURSOR
+		FOR SELECT regionType,allOldUserCount,olduserCount FROM #ConfigOldUser
+		OPEN config_cursor
+		FETCH NEXT FROM config_cursor INTO @RegionId,@allOldUserCount,@oldUserCount		
+		WHILE @@FETCH_STATUS=0 
+		BEGIN 
+			DECLARE @TotalWeek INT 
+			SELECT @TotalWeek = COUNT(*) FROM #ConfigRetention WHERE RegionType = @RegionId
+		
+			DECLARE @WeekId INT,@RegionType INT,@SZRecruitCount INT,@NJRecruitCount INT
+			DECLARE  user_cursor CURSOR  
+			FOR 
+				SELECT WeekId,RegionType,SZRecruitCount,NJRecruitCount
+				FROM #ConfigPersonnel
+				WHERE RegionType = @RegionId 
+				ORDER BY WeekId
+			OPEN user_cursor
+			FETCH NEXT FROM user_cursor INTO @WeekId,@RegionType,@SZRecruitCount,@NJRecruitCount
+			WHILE @@FETCH_STATUS = 0
+			BEGIN
+				<!--社招 -->
+				INSERT INTO #Retained
+				SELECT @WeekId,@RegionType,1,WEEKID+@WeekId-1, @SZRecruitCount * NewSZTurnoverRate 
+				FROM #ConfigRetention 
+				WHERE WeekId&lt;=(@TotalWeek+1-@WeekId) AND RegionType =@RegionType
+				<!--内介-->
+				INSERT INTO #Retained
+				SELECT @WeekId,@RegionType,2,WEEKID+@WeekId-1, @NJRecruitCount * NewNJTurnoverRate 
+				FROM #ConfigRetention 
+				WHERE WeekId&lt;=(@TotalWeek+1-@WeekId) AND RegionType =@RegionType
+				<!-- 老人 -->
+				INSERT INTO #Retained
+				SELECT @WeekId,@RegionType,4,@WeekId,@allOldUserCount*OldTurnoverRate
+				FROM #ConfigRetention WHERE WeekId=@WeekId AND RegionType=@RegionType	
+				<!-- 回炉老人 -->
+				INSERT INTO #Retained
+				SELECT @WeekId,@RegionType,3,@WeekId,@oldUserCount*OldTurnoverRate
+				FROM #ConfigRetention WHERE WeekId=@WeekId AND RegionType=@RegionType	
+		
+				FETCH NEXT FROM user_cursor INTO @WeekId,@RegionType,@SZRecruitCount,@NJRecruitCount
+			END
+			CLOSE user_cursor
+			DEALLOCATE user_cursor
+			FETCH NEXT FROM config_cursor INTO @RegionId,@allOldUserCount,@oldUserCount
+		END 
+		CLOSE config_cursor
+		DEALLOCATE config_cursor
+		
+		
+		<!-- 7天新人，2月内新人，2月外老人 -->
+		
+		IF OBJECT_ID('tempdb..#outDataOther') is NOT NULL
+			DROP TABLE #outDataOther
+		SELECT *
+		INTO #outDataOther
+		FROM (
+			<!-- 7天新人 -->
+			SELECT * FROM (
+				SELECT CONCAT('newUser7Day_',RegionType) AS cType,WeekNum,SUM(DataVal) AS newUser7Day
+				FROM #Retained 
+				WHERE DataType&lt;3 AND WeekId=WeekNum
+				GROUP BY RegionType,WeekNum			
+			)t
+			PIVOT  ( 
+				SUM(newUser7Day) 
+				FOR t.cType in ([newUser7Day_11]
+								,[newUser7Day_12]
+								,[newUser7Day_13]
+								,[newUser7Day_41]
+								,[newUser7Day_61]
+								)
+			) as ourpivot 
+		) a
+		INNER JOIN (
+			<!--- 2月新人 -->
+			SELECT * FROM (
+				SELECT CONCAT('newUser2MonthInner_',RegionType) AS cType,WeekNum AS WeekNumInner,SUM(DataVal) AS newUser2MonthInner
+				FROM #Retained 
+				WHERE DataType&lt;3 AND WeekId>WeekNum-8
+				GROUP BY RegionType,WeekNum
+			)t
+			PIVOT  ( 
+				SUM(newUser2MonthInner) 
+				FOR t.cType in ([newUser2MonthInner_11]
+								,[newUser2MonthInner_12]
+								,[newUser2MonthInner_13]
+								,[newUser2MonthInner_41]
+								,[newUser2MonthInner_61]
+								)
+			) as ourpivot 
+		) b ON a.WeekNum=b.WeekNumInner
+		LEFT JOIN (
+			<!-- 2月后老人（新人） -->
+			SELECT * FROM (
+				SELECT CONCAT('newUser2MonthOut_',RegionType) AS cType,WeekNum AS WeekNumOut,SUM(DataVal) AS newUser2MonthOut
+				FROM #Retained 
+				WHERE DataType&lt;3 AND WeekId&lt;=WeekNum-8
+				GROUP BY RegionType,WeekNum
+			)t
+			PIVOT  ( 
+				SUM(newUser2MonthOut) 
+				FOR t.cType in ([newUser2MonthOut_11]
+								,[newUser2MonthOut_12]
+								,[newUser2MonthOut_13]
+								,[newUser2MonthOut_41]
+								,[newUser2MonthOut_61]
+								)
+			) as ourpivot 
+		) c ON a.WeekNum=c.WeekNumOut
+		INNER JOIN (
+			<!---，2月后老人（老人）-->
+			SELECT * FROM (
+				SELECT CONCAT('oldUser_',RegionType) AS cType,WeekNum AS WeekNumOld,DataVal AS oldUser
+				FROM #Retained 
+				WHERE DataType=3			
+			)t
+			PIVOT  ( 
+				SUM(oldUser) 
+				FOR t.cType in ([oldUser_11]
+								,[oldUser_12]
+								,[oldUser_13]
+								,[oldUser_41]
+								,[oldUser_61]
+								)
+			) as ourpivot 
+		) d ON a.WeekNum=d.WeekNumOld
+		INNER JOIN (
+			<!-- 2月后老人（回炉老人） -->
+			SELECT * FROM (
+				SELECT CONCAT('oldUserAll_',RegionType) AS cType,WeekNum AS WeekNumOldAll,DataVal AS oldUserAll
+				FROM #Retained 
+				WHERE DataType=4
+			)t
+			PIVOT  ( 
+				SUM(oldUserAll) 
+				FOR t.cType in ([oldUserAll_11]
+								,[oldUserAll_12]
+								,[oldUserAll_13]
+								,[oldUserAll_41]
+								,[oldUserAll_61]
+								)
+			) as ourpivot 
+		) e ON a.WeekNum=e.WeekNumOldAll
+		
+		ORDER BY a.WeekNum
+
+
+		IF OBJECT_ID('tempdb..#outData') is NOT NULL
+			DROP TABLE #outData
+		<!-- 每周的人数变化 -->
+		SELECT  *
+		INTO #outData
+		FROM   
+		(
+			SELECT CONCAT(CASE WHEN DataType=1 THEN 'sz' WHEN DataType=2 THEN 'nj' ELSE 'lr' END,'Count_',RegionType,'_',DataType) AS cType, WeekNum,SUM(DataVal) AS szCount1
+				FROM #Retained 
+			GROUP BY RegionType,DataType, WeekNum
+		) t
+		PIVOT  ( 
+			SUM(szCount1) 
+			FOR t.cType in ([szCount_11_1],[njCount_11_2],[lrCount_11_3],[lrCount_11_4]
+							,[szCount_12_1],[njCount_12_2],[lrCount_12_3],[lrCount_12_4]
+							,[szCount_13_1],[njCount_13_2],[lrCount_13_3],[lrCount_13_4]
+							,[szCount_41_1],[njCount_41_2],[lrCount_41_3],[lrCount_41_4]
+							,[szCount_61_1],[njCount_61_2],[lrCount_61_3],[lrCount_61_4]
+				)
+		) as ourpivot 
+		ORDER BY ourpivot.WeekNum
+
+
+		<!-- 数据统计，7日，2月，2月以上，老人，合计 -->
+
+		SELECT a.WeekNum
+			 ,b.newUser7Day_11,b.newUser2MonthInner_11-b.newUser7Day_11 AS newUser2MonthInner_11,ISNULL(b.newUser2MonthOut_11,0) AS newUser2MonthOut_11,b.oldUser_11,b.oldUserAll_11,a.szCount_11_1+a.njCount_11_2+a.lrCount_11_3 AS total_11
+			 ,b.newUser7Day_12,b.newUser2MonthInner_12-b.newUser7Day_12 AS newUser2MonthInner_12,ISNULL(b.newUser2MonthOut_12,0) AS newUser2MonthOut_12,b.oldUser_12,b.oldUserAll_12,a.szCount_12_1+a.njCount_12_2+a.lrCount_12_3 AS total_12
+			 ,b.newUser7Day_13,b.newUser2MonthInner_13-b.newUser7Day_13 AS newUser2MonthInner_13,ISNULL(b.newUser2MonthOut_13,0) AS newUser2MonthOut_13,b.oldUser_13,b.oldUserAll_13,a.szCount_13_1+a.njCount_13_2+a.lrCount_13_3 AS total_13
+			 ,b.newUser7Day_41,b.newUser2MonthInner_41-b.newUser7Day_41 AS newUser2MonthInner_41,ISNULL(b.newUser2MonthOut_41,0) AS newUser2MonthOut_41,b.oldUser_41,b.oldUserAll_41,a.szCount_41_1+a.njCount_41_2+a.lrCount_41_3 AS total_41
+			 ,b.newUser7Day_61,b.newUser2MonthInner_61-b.newUser7Day_61 AS newUser2MonthInner_61,ISNULL(b.newUser2MonthOut_61,0) AS newUser2MonthOut_61,b.oldUser_61,b.oldUserAll_61,a.szCount_61_1+a.njCount_61_2+a.lrCount_61_3 AS total_61
+		FROM #outData a 
+		INNER JOIN #outDataOther b ON a.WeekNum=b.WeekNum 
+		ORDER BY a.WeekNum
+
+		<!-- 梯形显示总计 -->
+		
+		SELECT  *
+		FROM   
+		(
+			SELECT WeekId,WeekNum,SUM(DataVal) AS cc 
+			FROM #Retained 
+			WHERE DataType&lt;3 
+			GROUP BY WeekId,WeekNum
+		) t
+		PIVOT  ( 
+			SUM(cc) 
+			FOR t.WeekId in ([1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16],[17],[18],[19],[20],[21],[22],[23],[24],[25],[26],[27],[28],[29],[30],[31],[32],[33],[34],[35],[36],[37],[38],[39],[40],[41],[42],[43],[44],[45],[46],[47],[48],[49],[50],[51],[52],[53],[54],[55],[56])
+		) as ourpivot  
+		ORDER BY ourpivot.WeekNum
+		
+		<!-- 梯形显示分中心 -->
+		
+		SELECT  *
+		FROM   
+		(
+			SELECT RegionType,WeekId,WeekNum,SUM(DataVal) AS cc 
+			FROM #Retained 
+			WHERE DataType&lt;3 
+			GROUP BY RegionType,WeekId,WeekNum
+		) t
+		PIVOT  ( 
+			SUM(cc) 
+			FOR t.WeekId in ([1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16],[17],[18],[19],[20],[21],[22],[23],[24],[25],[26],[27],[28],[29],[30],[31],[32],[33],[34],[35],[36],[37],[38],[39],[40],[41],[42],[43],[44],[45],[46],[47],[48],[49],[50],[51],[52],[53],[54],[55],[56])
+		) as ourpivot  
+		ORDER BY RegionType,ourpivot.WeekNum
+		
+	</select>
+	
+	<select id="queryBakeAgain" parameterType="Map" resultType="Map">
+	<!---建立配置表-->
+		<!---周，5个分中心（离职率，招聘人数）-->
+		IF OBJECT_ID('tempdb..#ConfigPersonnel') is NOT NULL
+			DROP TABLE #ConfigPersonnel
+		CREATE TABLE #ConfigPersonnel(
+			 WeekId INT <!--周标识-->
+			,RegionType INT<!--中心标识-->
+			,SZRecruitCount INT<!--社招招聘人数-->
+			,NJRecruitCount INT<!--内介招聘人数-->
+			,PRIMARY KEY(WeekId,RegionType)
+		);
+		
+		IF OBJECT_ID('tempdb..#ConfigRetention') is NOT NULL
+			DROP TABLE #ConfigRetention
+		CREATE TABLE #ConfigRetention(
+			 WeekId INT <!--周标识-->
+			,RegionType INT<!--中心标识-->
+			,NewSZTurnoverRate FLOAT<!--社招留存率-->
+			,NewNJTurnoverRate FLOAT<!--内介留存率-->
+			,OldTurnoverRate FLOAT <!--老人留存率-->
+			,PRIMARY KEY(WeekId,RegionType)
+		);
+
+		
+		<!---初始化数据 -->
+		INSERT INTO #ConfigRetention
+		        ( WeekId ,
+		          RegionType ,
+		          NewSZTurnoverRate ,
+		          NewNJTurnoverRate ,
+		          OldTurnoverRate
+		        )
+		VALUES  
+		<foreach collection="configRetention" index="index" item="mapV" open="" separator="," close="">
+		  	(${mapV.WeekId},${mapV.RegionType},${mapV.NewSZTurnoverRate},${mapV.NewNJTurnoverRate},${mapV.OldTurnoverRate})
+		</foreach>
+		;
+		
+				
+		<!---初始化数据-->
+		INSERT INTO #ConfigPersonnel
+		        ( WeekId ,
+		          RegionType ,
+		          SZRecruitCount ,
+				  NJRecruitCount 
+		        )
+		VALUES  
+		<foreach collection="configPersonnel" index="index" item="mapV" open="" separator="," close="">
+		  	(${mapV.WeekId},${mapV.RegionType},${mapV.SZRecruitCount},${mapV.NJRecruitCount})
+		</foreach>
+		;
+		
+		IF OBJECT_ID('tempdb..#ConfigOldUser') is NOT NULL
+			DROP TABLE #ConfigOldUser
+		<!--老人配置信息-->
+		CREATE TABLE #ConfigOldUser(
+			RegionType INT  <!-- 中心标识 -->
+			,allOldUserCount FLOAT <!-- 全部老人 -->
+			,oldUserCount FLOAT <!-- 老人数目 -->
+			,PRIMARY KEY(RegionType)
+		);
+		INSERT INTO #ConfigOldUser
+		        ( RegionType,allOldUserCount, oldUserCount )
+		VALUES  
+		<foreach collection="configOldUser" index="index" item="mapV" open="" separator="," close="">
+		  	(${mapV.regionType},${mapV.allUserCount},${mapV.userCount})
+		</foreach>
+		;
+		
+		<!---留存人数-->
+		IF OBJECT_ID('tempdb..#Retained') is NOT NULL
+			DROP TABLE #Retained
+		
+		CREATE TABLE #Retained(
+			WeekId INT <!--周 -->
+			,RegionType INT <!--中心标识 -->
+			,DataType INT <!-- 1社招，2内介绍,3老人 -->
+			,WeekNum INT <!--每周情况 -->
+			,DataVal FLOAT <!--留存人数 -->
+			,PRIMARY KEY(WeekId,RegionType,DataType,WeekNum)
+		);
+		
+		
+		DECLARE @RegionId INT = 61
+		DECLARE @oldUserCount FLOAT,@allOldUserCount FLOAT
+		DECLARE config_cursor CURSOR
+		FOR SELECT regionType,allOldUserCount,olduserCount FROM #ConfigOldUser
+		OPEN config_cursor
+		FETCH NEXT FROM config_cursor INTO @RegionId,@allOldUserCount,@oldUserCount		
+		WHILE @@FETCH_STATUS=0 
+		BEGIN 
+			DECLARE @TotalWeek INT 
+			SELECT @TotalWeek = COUNT(*) FROM #ConfigRetention WHERE RegionType = @RegionId
+		
+			DECLARE @WeekId INT,@RegionType INT,@SZRecruitCount INT,@NJRecruitCount INT
+			DECLARE  user_cursor CURSOR  
+			FOR 
+				SELECT WeekId,RegionType,SZRecruitCount,NJRecruitCount
+				FROM #ConfigPersonnel
+				WHERE RegionType = @RegionId 
+				ORDER BY WeekId
+			OPEN user_cursor
+			FETCH NEXT FROM user_cursor INTO @WeekId,@RegionType,@SZRecruitCount,@NJRecruitCount
+			WHILE @@FETCH_STATUS = 0
+			BEGIN
+				<!-- 上拽 -->
+				INSERT INTO #Retained
+				SELECT @WeekId,@RegionType,4,@WeekId,@allOldUserCount
+				FROM #ConfigRetention WHERE WeekId=@WeekId AND RegionType=@RegionType	
+				<!-- 回炉 -->
+				INSERT INTO #Retained
+				SELECT @WeekId,@RegionType,3,@WeekId,@oldUserCount*OldTurnoverRate
+				FROM #ConfigRetention WHERE WeekId=@WeekId AND RegionType=@RegionType	
+		
+				FETCH NEXT FROM user_cursor INTO @WeekId,@RegionType,@SZRecruitCount,@NJRecruitCount
+			END
+			CLOSE user_cursor
+			DEALLOCATE user_cursor
+			FETCH NEXT FROM config_cursor INTO @RegionId,@allOldUserCount,@oldUserCount
+		END 
+		CLOSE config_cursor
+		DEALLOCATE config_cursor
+		
+		
+		<!-- 7天新人，2月内新人，2月外老人 -->
+		
+		IF OBJECT_ID('tempdb..#outDataOther') is NOT NULL
+			DROP TABLE #outDataOther
+		SELECT *
+		INTO #outDataOther
+		FROM (
+			<!--  回炉 -->
+			SELECT * FROM (
+				SELECT CONCAT('oldUser_',RegionType) AS cType,WeekNum,DataVal AS oldUser
+				FROM #Retained 
+				WHERE DataType=3			
+			)t
+			PIVOT  ( 
+				SUM(oldUser) 
+				FOR t.cType in ([oldUser_11]
+								,[oldUser_12]
+								,[oldUser_13]
+								,[oldUser_41]
+								,[oldUser_61]
+								)
+			) as ourpivot 
+		) d 
+		INNER JOIN (
+			<!--  上拽 -->
+			SELECT * FROM (
+				SELECT CONCAT('oldUserAll_',RegionType) AS cType,WeekNum AS WeekNumOldAll,DataVal AS oldUserAll
+				FROM #Retained 
+				WHERE DataType=4				
+			)t
+			PIVOT  ( 
+				SUM(oldUserAll) 
+				FOR t.cType in ([oldUserAll_11]
+								,[oldUserAll_12]
+								,[oldUserAll_13]
+								,[oldUserAll_41]
+								,[oldUserAll_61]
+								)
+			) as ourpivot 
+		) e ON d.WeekNum=e.WeekNumOldAll
+		SELECT b.WeekNum
+			,b.oldUser_11,b.oldUserAll_11
+			,b.oldUser_12,b.oldUserAll_12
+			,b.oldUser_13,b.oldUserAll_13
+			,b.oldUser_41,b.oldUserAll_41
+			,b.oldUser_61,b.oldUserAll_61
+		FROM  #outDataOther b  
+		ORDER BY b.WeekNum
+
+	</select>
+	
+  <insert id="updateForecastDept" parameterType="Map">  
+  	IF OBJECT_ID('tempdb..#userPart') is NOT NULL
+		DROP TABLE #userPart
+	CREATE TABLE #userPart(regionType int,adpetId int,rate float,primary key(adpetId));
+	INSERT INTO #userPart 
+	VALUES
+    <foreach collection="userPart" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.regionType},${mapV.adpetId},${mapV.rate})
+	</foreach>
+	;
+	IF OBJECT_ID('tempdb..#deptData') is NOT NULL
+		DROP TABLE #deptData
+	CREATE TABLE #deptData(actId int,actType int,regionType int,personCount float,signCount float);
+	INSERT INTO #deptData 
+	VALUES
+	<foreach collection="deptData" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.actId},${mapV.actType},${mapV.regionType},${mapV.userRegion},${mapV.signRegion})
+	</foreach>
+	;
+	IF OBJECT_ID('tempdb..#deptNewData') is NOT NULL
+		DROP TABLE #deptNewData
+	CREATE TABLE #deptNewData(actId int,actType int,adeptId int,personCount float,signCount float);
+	INSERT INTO #deptNewData 
+	VALUES
+	<foreach collection="deptData" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.actId},${mapV.actType},${mapV.adeptId},${mapV.personCountXd},${mapV.signRegionXrXd})
+	</foreach>
+	;
+	
+  	IF OBJECT_ID('tempdb..#exportData') is NOT NULL
+		DROP TABLE #exportData
+	CREATE TABLE #exportData(
+		  [recruitId] INT 
+		  ,[ActId] INT
+	      ,[ActType] INT 
+	      ,[DeptId] INT 
+	      ,[RealTransNum] FLOAT
+	      ,[DeptPersonNum] FLOAT
+		  ,PRIMARY KEY(recruitId,ActId,DeptId)
+	);
+	
+	insert into #exportData
+	select ${rId},a.actId,a.actType,b.adpetId,a.signCount*b.rate,a.personCount*b.rate
+	from #deptData a
+	INNER JOIN #userPart b on a.regionType=b.regionType 
+
+	
+	insert into #exportData
+	select ${rId},a.actId,a.actType,a.adeptId,sum(a.signCount),sum(a.personCount)
+	from #deptNewData a
+	group by a.actId,a.actType,a.adeptId
+	
+	EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+	
+  </insert>
+  
+  <insert id="updateConfigPersonnel" parameterType="Map">
+  <!---建立配置表-->
+		<!---周，5个分中心（离职率，招聘人数）-->
+		IF OBJECT_ID('tempdb..#cPersonData') is NOT NULL
+			DROP TABLE #cPersonData
+		CREATE TABLE #cPersonData(
+			configId INT
+			,WeekId INT <!--周标识-->
+			,RegionType INT<!--中心标识-->
+			,SZRecruitCount INT<!--社招招聘人数-->
+			,NJRecruitCount INT<!--内介招聘人数-->
+			,PRIMARY KEY(WeekId,RegionType)
+		);
+				
+		<!---初始化数据-->
+		INSERT INTO #cPersonData
+		        ( 
+		          configId,
+		          WeekId ,
+		          RegionType ,
+		          SZRecruitCount ,
+				  NJRecruitCount 
+		        )
+		VALUES  
+		<foreach collection="configPersonnel" index="index" item="mapV" open="" separator="," close="">
+		  	(${rId},${mapV.WeekId},${mapV.RegionType},${mapV.SZRecruitCount},${mapV.NJRecruitCount})
+		</foreach>
+		;
+		EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+  </insert>
+  
+  <insert id="updateConfigRetention" parameterType="Map">
+  
+		IF OBJECT_ID('tempdb..#cRetentionData') is NOT NULL
+			DROP TABLE #cRetentionData
+		CREATE TABLE #cRetentionData(
+			configId INT
+			,WeekId INT <!--周标识-->
+			,RegionType INT<!--中心标识-->
+			,NewSZTurnoverRate FLOAT<!--社招留存率-->
+			,NewNJTurnoverRate FLOAT<!--内介留存率-->
+			,OldTurnoverRate FLOAT <!--老人留存率-->
+			,PRIMARY KEY(WeekId,RegionType)
+		);
+
+		
+		<!---初始化数据 -->
+		INSERT INTO #cRetentionData
+		        ( 
+		          configId,
+		          WeekId ,
+		          RegionType ,
+		          NewSZTurnoverRate ,
+		          NewNJTurnoverRate ,
+		          OldTurnoverRate
+		        )
+		VALUES  
+		<foreach collection="configRetention" index="index" item="mapV" open="" separator="," close="">
+		  	(${rId},${mapV.WeekId},${mapV.RegionType},${mapV.NewSZTurnoverRate},${mapV.NewNJTurnoverRate},${mapV.OldTurnoverRate})
+		</foreach>
+		;
+		
+		EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+  </insert>
+  
+  <insert id="updateRecruitDeptAnnual" parameterType="Map">
+  
+		IF OBJECT_ID('tempdb..#annualData') is NOT NULL
+			DROP TABLE #annualData
+		CREATE TABLE #annualData(
+			RoundId INT DEFAULT 1 <!-- 标识  -->
+			,DeptId INT <!--部门标识  -->
+			,AllPersonCount FLOAT <!--全部人数  -->
+			,AvgPersonCount FLOAT <!--平均人数  -->
+			,ZxPersonCount FLOAT <!--7日在训人数  -->
+			,XrPersonCount FLOAT <!--7-2月的新人数  -->
+			,LrPersonCount FLOAT <!--2月后新人数  -->
+			,LgPersonCount FLOAT <!--轮耕人数  -->
+			,LzPersonCount FLOAT <!--离职人数  -->
+			,PRIMARY KEY(RoundId,DeptId)
+		);
+
+		
+		<!---初始化数据 -->
+		INSERT INTO #annualData
+		        ( 
+		          RoundId <!-- 标识  -->
+					,DeptId  <!--部门标识  -->
+					,AllPersonCount  <!--全部人数  -->
+					,AvgPersonCount  <!--平均人数  -->
+					,ZxPersonCount  <!--7日在训人数  -->
+					,XrPersonCount  <!--7-2月的新人数  -->
+					,LrPersonCount  <!--2月后新人数  -->
+					,LgPersonCount  <!--轮耕人数  -->
+					,LzPersonCount  <!--离职人数  -->
+		        )
+		VALUES  
+		<foreach collection="deptAnnual" index="index" item="mapV" open="" separator="," close="">
+		  	(${rId},${mapV.DeptId},${mapV.AllPersonCount},${mapV.AvgPersonCount},${mapV.ZxPersonCount}
+		  	,${mapV.XrPersonCount},${mapV.LrPersonCount},${mapV.LgPersonCount},${mapV.LzPersonCount})
+		</foreach>
+		;
+		
+		EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+  </insert>
+  
+  <insert id="updateRecruitEveryWeek" parameterType="Map">
+  
+		IF OBJECT_ID('tempdb..#weekData') is NOT NULL
+			DROP TABLE #weekData
+		CREATE TABLE #weekData(
+			RoundId INT DEFAULT 1 <!-- 标识  -->
+			,WeekId INT <!--周标识  -->
+			,RegionType INT <!--中心标识  -->
+			,AllPersonCount FLOAT <!--全部人数  -->
+			,ZxPersonCount FLOAT <!--7日在训人数  -->
+			,XrPersonCount FLOAT <!--7-2月的新人数  -->
+			,LrPersonCount FLOAT <!--2月后新人数  -->
+			,LgPersonCount FLOAT <!--轮耕人数  -->
+			,LzPersonCount FLOAT <!--离职人数  -->
+			,PRIMARY KEY(RoundId,WeekId,RegionType)
+		);
+
+		
+		<!---初始化数据 -->
+		INSERT INTO #weekData
+		        ( 
+		          RoundId <!-- 标识  -->
+					,WeekId  <!--周标识  -->
+					,RegionType  <!--中心标识  -->
+					,AllPersonCount  <!--全部人数  -->
+					,ZxPersonCount  <!--7日在训人数  -->
+					,XrPersonCount  <!--7-2月的新人数  -->
+					,LrPersonCount  <!--2月后新人数  -->
+					,LgPersonCount  <!--轮耕人数  -->
+					,LzPersonCount  <!--离职人数  -->
+		        )
+		VALUES  
+		<foreach collection="everyWeek" index="index" item="mapV" open="" separator="," close="">
+		  	(${rId},${mapV.WeekId},${mapV.RegionType},${mapV.AllPersonCount},${mapV.ZxPersonCount}
+		  	,${mapV.XrPersonCount},${mapV.LrPersonCount},${mapV.LgPersonCount},${mapV.LzPersonCount})
+		</foreach>
+		;
+		
+		EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+  </insert>
+  
+  <select id="queryWeek" parameterType="Map" resultType="Map">
+  	IF OBJECT_ID('tempdb..#weekData1') is NOT NULL
+			DROP TABLE #weekData1
+  	CREATE TABLE #weekData1(		
+		WeekId INT <!--周标识  -->
+		,RegionType INT <!--中心标识  -->
+		,ZxPersonCount FLOAT <!--7日在训人数  -->
+		,XrPersonCount FLOAT <!--7-2月的新人数  -->
+		,LrPersonCount FLOAT <!--2月后新人数  -->
+		,LgPersonCount FLOAT <!--轮耕人数  -->	
+		,SzPersonCount FLOAT <!-- 上拽 -->
+		,XdPersonCount FLoAT <!-- 小单 -->
+		,PRIMARY KEY(WeekId,RegionType)
+	);
+	INSERT INTO #weekData1
+		        ( 
+		        WeekId  <!--周标识  -->
+				,RegionType  <!--中心标识  -->
+				,ZxPersonCount  <!--7日在训人数  -->
+				,XrPersonCount  <!--7-2月的新人数  -->
+				,LrPersonCount  <!--2月后新人数  -->
+				,LgPersonCount  <!--轮耕人数  -->
+				,SzPersonCount  
+				,XdPersonCount 
+		        )
+	VALUES  
+	<foreach collection="everyWeek" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.weekId},11,${mapV.newUser7Day_11},${mapV.newUser2MonthInner_11}
+	  	,${mapV.newUser2MonthOut_11},${mapV.backUser_11},${mapV.pullUp_11},${mapV.upUser_11})
+	</foreach>
+	;
+	INSERT INTO #weekData1
+		        ( 
+		        WeekId  <!--周标识  -->
+				,RegionType  <!--中心标识  -->
+				,ZxPersonCount  <!--7日在训人数  -->
+				,XrPersonCount  <!--7-2月的新人数  -->
+				,LrPersonCount  <!--2月后新人数  -->
+				,LgPersonCount  <!--轮耕人数  -->
+				,SzPersonCount 
+				,XdPersonCount   
+		        )
+	VALUES  
+	<foreach collection="everyWeek" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.weekId},12,${mapV.newUser7Day_12},${mapV.newUser2MonthInner_12}
+	  	,${mapV.newUser2MonthOut_12},${mapV.backUser_12},${mapV.pullUp_12},${mapV.upUser_12})
+	</foreach>
+	;
+	INSERT INTO #weekData1
+		        ( 
+		        WeekId  <!--周标识  -->
+				,RegionType  <!--中心标识  -->
+				,ZxPersonCount  <!--7日在训人数  -->
+				,XrPersonCount  <!--7-2月的新人数  -->
+				,LrPersonCount  <!--2月后新人数  -->
+				,LgPersonCount  <!--轮耕人数  -->
+				,SzPersonCount  
+				,XdPersonCount  
+		        )
+	VALUES  
+	<foreach collection="everyWeek" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.weekId},13,${mapV.newUser7Day_13},${mapV.newUser2MonthInner_13}
+	  	,${mapV.newUser2MonthOut_13},${mapV.backUser_13},${mapV.pullUp_13},${mapV.upUser_13})
+	</foreach>
+	;
+	
+	INSERT INTO #weekData1
+		        ( 
+		        WeekId  <!--周标识  -->
+				,RegionType  <!--中心标识  -->
+				,ZxPersonCount  <!--7日在训人数  -->
+				,XrPersonCount  <!--7-2月的新人数  -->
+				,LrPersonCount  <!--2月后新人数  -->
+				,LgPersonCount  <!--轮耕人数  -->
+				,SzPersonCount  
+				,XdPersonCount  
+		        )
+	VALUES  
+	<foreach collection="everyWeek" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.weekId},61,${mapV.newUser7Day_61},${mapV.newUser2MonthInner_61}
+	  	,${mapV.newUser2MonthOut_61},${mapV.backUser_61},${mapV.pullUp_61},${mapV.upUser_61})
+	</foreach>
+	;
+	
+	INSERT INTO #weekData1
+		        ( 
+		        WeekId  <!--周标识  -->
+				,RegionType  <!--中心标识  -->
+				,ZxPersonCount  <!--7日在训人数  -->
+				,XrPersonCount  <!--7-2月的新人数  -->
+				,LrPersonCount  <!--2月后新人数  -->
+				,LgPersonCount  <!--轮耕人数  -->
+				,SzPersonCount   
+				,XdPersonCount 
+		        )
+	VALUES  
+	<foreach collection="everyWeek" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.weekId},41,${mapV.newUser7Day_41},${mapV.newUser2MonthInner_41}
+	  	,${mapV.newUser2MonthOut_41},${mapV.backUser_41},${mapV.pullUp_41},${mapV.upUser_41})
+	</foreach>
+	;
+	IF OBJECT_ID('tempdb..#userPart') is NOT NULL
+			DROP TABLE #userPart
+	CREATE TABLE #userPart(regionType int,adeptId int,rate float,primary key(regionType,adeptId));
+	INSERT INTO #userPart Values
+	<foreach collection="userPart" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.regionType},${mapV.adpetId},${mapV.rate})
+	</foreach>
+	;
+	IF OBJECT_ID('tempdb..#userLast') is NOT NULL
+			DROP TABLE #userLast
+	CREATE TABLE #userLast(regionType int,firstVal float,lastVal float,newFirstVal float,newLastVal float,adeptId int,primary key(regionType));
+	INSERT INTO #userLast VALUES
+	<foreach collection="userAll" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.regionType},${mapV.first},${mapV.last},${mapV.newFirst},${mapV.newLast},${mapV.adeptId})
+	</foreach>
+	;
+	
+	SELECT ${rId} AS RoundId 
+	,weekid+1 AS weekId
+	,RegionType 
+	,ZxPersonCount+XrPersonCount+LrPersonCount+LgPersonCount+SzPersonCount+XdPersonCount AS AllPersonCount
+	,ZxPersonCount
+	,XrPersonCount
+	,LrPersonCount
+	,LgPersonCount
+	,SzPersonCount AS LzPersonCount
+	,XrPersonCount+LrPersonCount+LgPersonCount+XdPersonCount as XdPersonCount
+	into #weekData
+	FROM #weekData1
+	
+	insert into #weekData
+	SELECT 1,0,regionType
+	,firstVal+newFirstVal AS AllPersonCount 
+	,0 AS ZxPersonCount
+	,0 AS XrPersonCount
+	,0 AS LrPersonCount
+	,0 AS LgPersonCount
+	,CASE  WHEN regiontype =61 THEN 0 ELSE firstVal END  AS LzPersonCount
+	,CASE  WHEN regiontype =61 THEN firstVal+newFirstVal ELSE newFirstVal END  AS XdPersonCount
+	FROM #userLast
+	
+	EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+	
+	
+	IF OBJECT_ID('tempdb..#tmpUser1') is NOT NULL
+			DROP TABLE #tmpUser1
+	SELECT b.adeptId
+		,a.avgTotal*rate AS avgUser
+		,a.firstVal*rate AS firstVal
+		,a.lastVal*rate AS lastVal
+	INTO #tmpUser1
+	FROM (
+		SELECT a.*,b.firstVal,b.lastVal AS lastVal
+		FROM( 
+			SELECT RegionType,sum(SzPersonCount+XdPersonCount)/COUNT(*) AS avgTotal
+			FROM #weekData1
+			GROUP BY RegionType
+		) a
+		INNER JOIN #userLast b ON a.RegionType=b.regionType
+	) a 
+	INNER JOIN #userPart b ON a.RegionType=b.regionType
+	UNION
+	SELECT adeptId,SUM(avgTotal),SUM(newFirstVal),SUM(newLastVal)
+	FROM(
+		SELECT a.*,b.newFirstVal,b.newLastVal,b.adeptId
+		FROM( 
+			SELECT RegionType,sum(ZxPersonCount+XrPersonCount+LrPersonCount+LgPersonCount)/COUNT(*) AS avgTotal
+			FROM #weekData1
+			GROUP BY RegionType
+		) a
+		INNER JOIN #userLast b ON a.RegionType=b.regionType
+	) b
+	GROUP BY adeptId
+	
+	SELECT ${rId} as RoundId
+		,a.adeptId as DeptId
+		,a.avgUser AS AvgPersonCount 
+		,a.firstVal AS AllPersonCount
+		,a.lastVal AS ZxPersonCount
+		,ISNULL(b.newUsers,0) AS XrPersonCount
+		,a.firstVal+ISNULL(b.newUsers,0)-a.lastVal AS LzPersonCount
+		,0 AS LrPersonCount
+		,0 AS LgPersonCount
+	INTO #annualData
+	FROM #tmpUser1 a
+	LEFT JOIN (
+		SELECT b.adeptId,a.newUsers*b.rate AS newUsers
+		FROM(
+			SELECT a.RegionType,SUM(a.SZRecruitCount+a.NJRecruitCount) AS newUsers
+			FROM [dbo].[_ForecastAnalysis_Act_Recruit_Center_ConfigPersonnel] a
+			GROUP BY a.RegionType
+		) a
+		INNER JOIN #userPart b ON a.RegionType=b.regionType
+	) b ON a.adeptId=b.adeptId
+	
+	EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+  </select>
+	
+  <update id="updateActStatus" parameterType="Map">
+  IF OBJECT_ID('tempdb..#cActStatus') is NOT NULL
+			DROP TABLE #cActStatus
+  	CREATE TABLE #cActStatus(		
+		configId INT
+		,actId INT 
+		,RegionType INT
+		,HuluRate FLOAT
+		,PullUp INT
+		,PRIMARY KEY(configId,actId,RegionType)
+	);
+	INSERT INTO #cActStatus
+		        ( 
+		        configId
+				,actId 
+				,RegionType
+				,HuluRate 
+				,PullUp 
+		        )
+	VALUES  
+	<foreach collection="actStatus" index="index" item="mapV" open="" separator="," close="">
+	  	(${rId},${mapV.actId},${mapV.regionType}
+	  	,${mapV.rate},${mapV.isUp})
+	</foreach>
+	;
+	
+  EXEC DB_WebNerveData.[dbo].[P_ForecastAnalysis_Recruit_Add_Data] @recruitId=${rId},@param=null
+  </update>
+</mapper>

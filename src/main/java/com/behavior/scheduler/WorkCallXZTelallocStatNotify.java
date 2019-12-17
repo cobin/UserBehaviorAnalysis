@@ -14,12 +14,6 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.cobin.util.CDate;
-/**
- * @author  Cobin
- * @date    2019/7/24 16:59
- * @version 1.0
- * @DisallowConcurrentExecution 不允许并发执行
-*/
 @PersistJobDataAfterExecution
 @DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallXZTelallocStatNotify extends WorkJob {
@@ -38,8 +32,7 @@ public class WorkCallXZTelallocStatNotify extends WorkJob {
 	public void execWork(BehaviorMain bm,String qDate){
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class); 
 		CallTask69Mapper ct69 = bm.getMapper(CallTask69Mapper.class);
-		//"2017-11-28"
-		curQuery = new CDate();
+		curQuery = new CDate();//"2017-11-28"
 		if(curQuery.getHourOfDay()<12) {
 			curQuery.addDate(-1);
 		}
@@ -62,17 +55,16 @@ public class WorkCallXZTelallocStatNotify extends WorkJob {
 			log.debug(Thread.currentThread().getName()+">"+TAG+">Oracle-TelallocStat同步总数为:"+result.size());	
 			for(Map<Object,Object> r:result){
 				execCount++;
-				changeMapVal(keys,r);
-//				for(String key:keys){
-//					Object obj = r.get(key);
-//					if(obj==null){
-//						r.put(key, "NULL");
-//					}else if(obj instanceof String){
-//						r.put(key, "'"+obj+"'");
-//					}else if(obj instanceof Date){
-//						r.put(key, "'"+obj+"'");
-//					}
-//				}
+				for(String key:keys){
+					Object obj = r.get(key);
+					if(obj==null){
+						r.put(key, "NULL");
+					}else if(obj instanceof String){
+						r.put(key, "'"+obj+"'");
+					}else if(obj instanceof Date){						
+						r.put(key, "'"+obj+"'");
+					}				
+				}
 				iData.add(r);
 				if(iData.size()>=insertSize){
 					qData.add(iData);

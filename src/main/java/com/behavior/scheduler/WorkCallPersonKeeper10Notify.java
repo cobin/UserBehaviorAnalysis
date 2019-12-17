@@ -15,14 +15,8 @@ import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.cobin.util.CDate;
 
-/**
- * @author  Cobin
- * @date    2019/7/24 16:54
- * @version 1.0
-*/
 @PersistJobDataAfterExecution
-//// 不允许并发执行
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallPersonKeeper10Notify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -48,17 +42,14 @@ public class WorkCallPersonKeeper10Notify extends WorkJob {
 				break;
 			}
 			xCount++;
-			if(xCount>150){
-				break;
-			}
+			if(xCount>150)break;
 		}
-		if(curQuery!=null) {
+		if(curQuery!=null)
 			ct111.updateEbPersonKeeper10(CDate.formatIntDate());
-		}
 		
 	}
 	//
-	private int loadPersonKeeper(CallTask111Mapper ct111, CallTask69Mapper ct69){
+	protected int loadPersonKeeper(CallTask111Mapper ct111,CallTask69Mapper ct69){
 		if(curQuery==null){
 			curQuery = ct111.getEbPersonKeeper10MaxDate();
 			curQuery.setTime(curQuery.getTime()-5000);
@@ -77,17 +68,16 @@ public class WorkCallPersonKeeper10Notify extends WorkJob {
 		int execCount = 0;
 		log.debug(Thread.currentThread().getName()+">"+TAG+">Oracle-PersonKeeper-10同步总数为:"+result.size());	
 		for(Map<Object,Object> r:result){
-			changeMapVal(keysPersonKeeper,r);
-//			for(String key:keysPersonKeeper){
-//				Object obj = r.get(key);
-//				if(obj==null){
-//					r.put(key, "NULL");
-//				}else if(obj instanceof String){
-//					r.put(key, "'"+obj+"'");
-//				}else if(obj instanceof Date){
-//					r.put(key, "'"+obj+"'");
-//				}
-//			}
+			for(String key:keysPersonKeeper){
+				Object obj = r.get(key);
+				if(obj==null){
+					r.put(key, "NULL");
+				}else if(obj instanceof String){
+					r.put(key, "'"+obj+"'");
+				}else if(obj instanceof Date){
+					r.put(key, "'"+obj+"'");
+				}				
+			}
 			iData.add(r);
 			if(execCount<resultB01.size()) {
 				Map<Object,Object> rb = resultB01.get(execCount);
@@ -122,7 +112,7 @@ public class WorkCallPersonKeeper10Notify extends WorkJob {
 	}
 	
 	public static final int insertSize = 1000;
-	private static final int loadSubTime = 24*60*60*1000;
+	public static final int loadSubTime = 24*60*60*1000;
 	private Date curQuery = null;
-	private final static String[] keysPersonKeeper= {"LOGTIME","COMMENTS","OLDKEEPERNAME","NEWKEEPERNAME","FROMWHERE","DOMAIN","FINISHTIME"};
+	public static String[] keysPersonKeeper= {"LOGTIME","COMMENTS","OLDKEEPERNAME","NEWKEEPERNAME","FROMWHERE","DOMAIN","FINISHTIME"};
 }

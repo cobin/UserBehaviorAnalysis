@@ -9,13 +9,7 @@ import org.quartz.JobExecutionException;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper91.CallTask91Mapper;
 
-/**
- * @author  Cobin
- * @date    2019/7/24 17:03
- * @version 1.0
-*/
 public class WorkCallUserAH extends WorkJob {
-
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
 		try {
@@ -28,7 +22,7 @@ public class WorkCallUserAH extends WorkJob {
 	}
 
 	@Override
-	public void execWork(BehaviorMain bm, String qDate){
+	public void execWork(BehaviorMain bm,String qDate){
 		CallTask91Mapper mapper = bm.getMapper(CallTask91Mapper.class);
 		
 		List<Map<Object,Object>> ver2 =mapper.getVer2();
@@ -36,16 +30,6 @@ public class WorkCallUserAH extends WorkJob {
 		int rowId = 0;
 		for(Map<Object, Object> v:ver2) {
 			rowId++;
-/*
-			try {
-				String s = new String(v.get("PName").toString().getBytes("GBK"),"UTF-8");
-				System.out.println(s);
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
-			System.out.println("rowId:"+rowId+">>>"+v.get("PName").toString());
-			if(rowId>10) break;
-*/
 			int verAutoId = (Integer)v.get("AutoID");
 			List<Map<Object,Object>> ver1 = mapper.getVer1(verAutoId,autoId);
 			

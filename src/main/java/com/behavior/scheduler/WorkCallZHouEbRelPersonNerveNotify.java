@@ -13,14 +13,8 @@ import org.quartz.PersistJobDataAfterExecution;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
-/**
- * @author  Cobin
- * @date    2019/7/24 17:02
- * @version 1.0
- * @DisallowConcurrentExecution 不允许并发执行
-*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallZHouEbRelPersonNerveNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -60,18 +54,17 @@ public class WorkCallZHouEbRelPersonNerveNotify extends WorkJob {
 			log.debug(Thread.currentThread().getName()+">"+TAG+">Oracle-EbRelPersonNerve同步总数为:"+result.size());	
 			for(Map<Object,Object> r:result){
 				execCount++;
-				changeMapVal(keys,r);
 //				System.out.println(Arrays.toString(r.keySet().toArray(new String[r.size()])));
-//				for(String key:keys){
-//					Object obj = r.get(key);
-//					if(obj==null){
-//						r.put(key, "NULL");
-//					}else if(obj instanceof String){
-//						r.put(key, "'"+obj+"'");
-//					}else if(obj instanceof Date){
-//						r.put(key, "'"+obj+"'");
-//					}
-//				}
+				for(String key:keys){
+					Object obj = r.get(key);
+					if(obj==null){
+						r.put(key, "NULL");
+					}else if(obj instanceof String){
+						r.put(key, "'"+obj+"'");
+					}else if(obj instanceof Date){
+						r.put(key, "'"+obj+"'");
+					}				
+				}
 				
 				iData.add(r);
 				if(iData.size()>=insertSize){

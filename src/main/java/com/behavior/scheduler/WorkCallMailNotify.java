@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.security.Security;
 import java.util.Date;
 import java.util.Properties;
 
@@ -38,11 +37,7 @@ import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
-/**
- * @author  Cobin
- * @date    2019/7/24 16:43
- * @version 1.0
-*/
+
 public class WorkCallMailNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -65,23 +60,23 @@ public class WorkCallMailNotify extends WorkJob {
 	}
 	
 	
-	@SuppressWarnings("restriction")
+//	@SuppressWarnings("restriction")
 	public void getMail(BehaviorMain bm) throws MessagingException, IOException{
-		Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
-	    String SSL_FACTORY = "javax.net.ssl.SSLSocketFactory";
+//		Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+//	    String SSL_FACTORY = "javax.net.ssl.SSLSocketFactory";
 		Properties props = new Properties();  
-        props.setProperty("mail.pop3.socketFactory.class", SSL_FACTORY);
-        props.setProperty("mail.pop3.socketFactory.fallback", "false");
-        props.setProperty("mail.pop3.port", "995");
-        props.setProperty("mail.pop3.socketFactory.port", "995");
+//        props.setProperty("mail.pop3.socketFactory.class", SSL_FACTORY);
+//        props.setProperty("mail.pop3.socketFactory.fallback", "false");
+        props.setProperty("mail.pop3.port", "110");
+//        props.setProperty("mail.pop3.socketFactory.port", "995");
         // 以下步骤跟一般的JavaMail操作相同
         Session session = Session.getDefaultInstance(props, null);
 
         // 请将红色部分对应替换成你的邮箱帐号和密码
-        URLName urln = new URLName("pop3", "pop.qq.com", 995, null,
+        URLName urln = new URLName("pop3", "pop.qq.com", 110, null,
         		 "1483471604@qq.com", bm.getConfig("mail.code") );
         Store store = session.getStore(urln);
-        log.info("登录邮箱...");
+        log.debug("登录邮箱...");
         store.connect();
         
 //		//存储接收邮件服务器使用的协议，这里以POP3为例  
@@ -118,20 +113,18 @@ public class WorkCallMailNotify extends WorkJob {
 		Folder folder = store.getFolder("INBOX");  
 		//以只读权限打开收件箱  
 		folder.open(Folder.READ_ONLY);  
-		log.info("收件箱邮件："+folder.getMessageCount());
-/*
-		Message _messages[] = folder.getMessages();
-		for(Message msg : _messages ) {
-			log.debug(msg.getFrom()[0]);
-		}
-*/
-		log.debug("过滤发件人为:"+bm.getConfig("mail.from"));
+		log.debug("收件箱邮件："+folder.getMessageCount());
+//		Message _messages[] = folder.getMessages();  
+//		for(Message msg : _messages ) {
+//			log.debug(msg.getFrom()[0]);
+//		}
+		log.debug("过滤发件人为:"+bm.getConfig("mail.from"));		
 		Message messages[] = folder.search(st);
 		log.debug("收到今天对方发送的邮件>>"+messages.length);
 		for (Message message : messages) {
 			// 获取邮件具体信息
-			log.debug(message.getSubject());
-			log.debug(message.getSentDate());
+			System.out.println(message.getSubject());
+			System.out.println(message.getSentDate());
 			Object obj = message.getContent();
 			if (obj instanceof Multipart) {
 				Multipart mp = (Multipart) obj;
@@ -157,8 +150,8 @@ public class WorkCallMailNotify extends WorkJob {
 	public boolean saveFile(String pName, InputStream in){
 		log.debug("附件文件名为："+pName);
 		File dir = new File("mail");
-		if(!dir.exists() && !dir.mkdirs()){
-			return false;
+		if(!dir.exists()){
+			dir.mkdirs();
 		}
 		File f = new File(dir,pName);
 		if(!f.exists()){
@@ -178,7 +171,7 @@ public class WorkCallMailNotify extends WorkJob {
 				log.error(e);
 			}
 		}else{
-			log.info("文件已经下载过.");
+			log.debug("文件已经下载过.");
 		}
 		return false;
 	}
@@ -186,14 +179,10 @@ public class WorkCallMailNotify extends WorkJob {
 	public boolean uploadExcel(String fileName) {		
 		File fup = new File("mail/"+fileName);
 		if(fup.exists()){		
-			// SSH连接用户名
-			String user = "brokerage";
-			// SSH连接密码
-			String password = "Wjm_123456";
-			// SSH服务器
-			String host = "172.17.161.75";
-			// SSH访问端口
-			int port = 22;
+			String user = "brokerage";// SSH连接用户名
+			String password = "Wjm_123456";// SSH连接密码
+			String host = "172.17.161.75";// SSH服务器
+			int port = 22;// SSH访问端口
 			com.jcraft.jsch.Session session = null;		
 			try {
 				JSch jsch = new JSch();			
@@ -212,25 +201,24 @@ public class WorkCallMailNotify extends WorkJob {
 				if(session!=null){
 					session.disconnect();
 				}
-				log.debug("退出远程服务器:"+host);
 			}
+			log.debug("退出远程服务器:"+host);
 		}
 		return false;
 	}
 	
 	public void sftp(com.jcraft.jsch.Session session,File file) throws JSchException, SftpException, IOException{
-		log.debug("启动sftp上载文件...");
+		log.debug("启动sftp上载文件...");		
 		Channel channel = session.openChannel("sftp");
 		channel.connect();
 		ChannelSftp  sftp = (ChannelSftp) channel;
 		sftp.lcd("mail/");
 		sftp.cd("/search/ChangJiangImportWeb/Txt/");
-		log.info("正在上传文件:"+file.getName());
+		log.debug("正在上传文件....");
 		InputStream inputStream = new FileInputStream(file);
 		sftp.put(inputStream,file.getName());
 		inputStream.close();
 		sftp.disconnect();
-		log.info("上传文件完成");
 	}
 	
 	public void exec(com.jcraft.jsch.Session session) throws JSchException, IOException{
@@ -245,9 +233,7 @@ public class WorkCallMailNotify extends WorkJob {
 		StringBuffer buf = new StringBuffer( 1024 ); 			
         while ( in.available() > 0 ) {  
             int i = in.read( b, 0, 1024 );  
-            if ( i < 0 ) {
-            	break;
-			}
+            if ( i < 0 ) break;  
             buf.append( new String( b, 0, i ) );  
         }  
         if ( exec.isClosed() ) {  
@@ -271,5 +257,12 @@ public class WorkCallMailNotify extends WorkJob {
         pipeOut.close();  
         pipeIn.close();   
         shell.disconnect(); 
+	}
+	
+	public static void main(String[] args) {
+		BehaviorMain behaviorMain = new BehaviorMain(0, null);
+		behaviorMain.reloadConfig();
+		WorkCallMailNotify mailNotify = new WorkCallMailNotify();
+		mailNotify.execWork(behaviorMain, null);
 	}
 }

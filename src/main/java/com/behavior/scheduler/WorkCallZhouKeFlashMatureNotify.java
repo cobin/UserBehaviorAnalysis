@@ -12,11 +12,7 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 import com.cobin.util.CDate;
-/**
- * @author  Cobin
- * @date    2019/7/24 17:15
- * @version 1.0
-*/ 
+
 public class WorkCallZhouKeFlashMatureNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -29,8 +25,7 @@ public class WorkCallZhouKeFlashMatureNotify extends WorkJob {
 		}
 	}
 	
-	@Override
-    public void execWork(BehaviorMain bm, String qDate){
+	public void execWork(BehaviorMain bm,String qDate){
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class); 
 		CallTask69Mapper ct69 = bm.getMapper(CallTask69Mapper.class);
 		CDate cDate = new CDate();
@@ -52,20 +47,17 @@ public class WorkCallZhouKeFlashMatureNotify extends WorkJob {
 			long _dLong = System.currentTimeMillis();
 			for(Map<Object,Object> r:result){
 				execCount++;
-				changeMapVal(keys,r);
-//				for(String key:keys){
-//					Object obj = r.get(key);
-//					if(obj==null){
-//						r.put(key, "NULL");
-//					}else if(obj instanceof String){
-//						r.put(key, "'"+obj+"'");
-//					}else if(obj instanceof Date){
-//						r.put(key, "'"+obj+"'");
-//					}
-//				}
-				if(buff.length()>0){
-					buff.append(",");
+				for(String key:keys){
+					Object obj = r.get(key);					
+					if(obj==null){
+						r.put(key, "NULL");
+					}else if(obj instanceof String){
+						r.put(key, "'"+obj+"'");
+					}else if(obj instanceof Date){
+						r.put(key, "'"+obj+"'");
+					}				
 				}
+				if(buff.length()>0) buff.append(",");
 				buff.append("(");
 				for(String key:vals){					
 					buff.append(r.get(key)).append(",");
@@ -94,7 +86,7 @@ public class WorkCallZhouKeFlashMatureNotify extends WorkJob {
 		return rowCount;
 	}
 	private String[] keys = {"MODIFYTIME","LOGINDAYS","NEWSARTICLECNT","ROOMDAYS","CALLINCNT"};
-	private static final int rowCount = 20000;
+	public static final int rowCount = 20000;
 	public static final int insertSize = 560;
 	private String[] vals = {"PERSONID"
 			,"NID"

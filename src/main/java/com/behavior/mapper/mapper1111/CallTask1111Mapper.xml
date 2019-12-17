@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper1111.CallTask1111Mapper" >  
+  <parameterMap type="Map" id="proIndex">
+  <parameter property="Sdate" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/> 
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  </parameterMap>
+  <update id="updateUsersCourseVideo" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersCourseVideoDate_Update(?, ?)}
+  </update>
+  
+  <update id="updateUsersCourseAllDate" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersCourseAllDate_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourseInsureDate" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersInsureCourseDate_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourse360Date" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersCourse360Date_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourse3600Date" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersCourseDate_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourse18000Date" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_Users18000CourseDate_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourse28800Date" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_UserNT.dbo.P_Users28800CourseDate_Update(?, ?)}
+  </update>
+
+  <parameterMap type="Map" id="callIndex">
+  <parameter property="startDate" jdbcType="VARCHAR" mode="IN" javaType="java.lang.String"/> 
+  <parameter property="endDate" jdbcType="VARCHAR" mode="IN" javaType="java.lang.String"/> 
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  </parameterMap>
+  
+  <update id="updateUserClassRoomStaticAll" parameterMap="callIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_CourseStatisticWeb_Get_UserClassRoomStaticAll_Scheduler(?, ? ,?)}
+  </update>
+  <update id="updateUserClassRoomStaticInsure" parameterMap="callIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_CourseStatisticWeb_Get_UserClassRoomStaticInsure_Scheduler(?, ? ,?)}
+  </update>
+  <update id="updateUserClassRoomStatic360" parameterMap="callIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_CourseStatisticWeb_Get_UserClassRoomStatic_Scheduler(?, ? ,?)}
+  </update>
+  
+  <update id="updateUserClassRoomStatic3600" parameterMap="callIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_CourseStatisticWeb_Get_UserClassRoomStatic3600_Scheduler(?, ? ,?)}
+  </update>
+   
+  <update id="updateUserClassRoomStatic18000" parameterMap="callIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_CourseStatisticWeb_Get_UserClassRoomStatic18000_Scheduler(?, ? ,?)}
+  </update>
+  
+  <update id="updateUserClassRoomStatic28800" parameterMap="callIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_CourseStatisticWeb_Get_UserClassRoomStatic28800_Scheduler(?, ? ,?)}
+  </update>
+   
+  <parameterMap type="Map" id="roomDataIndex">
+  <parameter property="return" jdbcType="INTEGER" mode="OUT" javaType="java.lang.Integer"/>
+  <parameter property="CalcDate" jdbcType="VARCHAR" mode="IN" javaType="java.lang.String"/>
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  </parameterMap>
+  
+  <update id="updateRoomDataByDate" parameterMap="roomDataIndex" statementType="CALLABLE">  
+  {?=call BD_Users.dbo.P_Update_RoomDataByDate(?,?)}
+  </update>
+  
+  <parameterMap type="Map" id="compareDataIndex">
+  <parameter property="nEndDate" jdbcType="VARCHAR" mode="IN" javaType="java.lang.String"/>
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  </parameterMap>
+  <update id="updateUserClassRoomStatic3600Expand" parameterMap="compareDataIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_CourseStatisticWeb_Get_UserClassRoomStatic3600_Compare_Scheduler(?, ? )}
+  </update>
+
+  <select id="queryRoomData" parameterType="Map" resultType="Map">
+  <![CDATA[
+    DECLARE @CalcDate DATETIME = cast('${calDate}' as DateTime);
+  	DECLARE @UpdateDate VARCHAR(10),@CurrentDate VARCHAR(10),@CalcLogInDate varchar(10);
+	SET @UpdateDate = CONVERT(VARCHAR(10),@CalcDate,120);
+	SET @CurrentDate = CONVERT(VARCHAR(10),DATEADD(day,1,@CalcDate),120);
+	SET @CalcLogInDate = CONVERT(VARCHAR(10),DATEADD(day,-4,@CalcDate),120); 
+	
+  	IF EXISTS (SELECT * FROM tempdb.dbo.SYSOBJECTS WHERE id = object_id(N'[tempdb].[dbo].[#CombinedData]') and type = 'U') 
+	 BEGIN
+	 DROP TABLE #CombinedData;
+	 END
+	SELECT * 
+	INTO #CombinedData 
+	FROM (  
+		SELECT A.PersonId,A.Rid AS RoomId,A.LogTime AS LoginTime,MIN(B.LogTime)AS LogOutTime 
+		FROM  (
+			SELECT * 
+			FROM DBBehavior.dbo._Market_IM_User_InOut_Room_Log 
+			WHERE LogTime >= @UpdateDate AND LogTime < @CurrentDate AND opType = 'in'
+		) AS A
+		LEFT JOIN (SELECT * FROM DBBehavior.dbo._Market_IM_User_InOut_Room_Log WHERE LogTime >= @UpdateDate ) AS B
+		ON A.PersonId = B.PersonId AND A.Rid = B.Rid AND  B.LogTime > A.LogTime GROUP BY A.PersonId,A.Rid,A.LogTime 
+		UNION
+		SELECT A.PersonId,A.Rid AS RoomId,MAX(B.LogTime) AS LoginTime,A.LogTime AS LogOutTime 
+		FROM (
+			SELECT * 
+			FROM DBBehavior.dbo._Market_IM_User_InOut_Room_Log 
+			WHERE LogTime >= @UpdateDate AND LogTime < @CurrentDate AND opType = 'out'
+		) AS A
+		LEFT JOIN (SELECT * FROM DBBehavior.dbo._Market_IM_User_InOut_Room_Log WHERE LogTime < @CurrentDate AND LogTime > @CalcLogInDate ) AS B
+		ON A.PersonId = B.PersonId AND A.Rid = B.Rid AND  B.LogTime < A.LogTime GROUP BY A.PersonId,A.Rid,A.LogTime
+	) AS C 
+	GROUP BY C.PersonId,C.RoomId,C.LoginTime,c.LogOutTime; 
+ 	UPDATE A SET A.LoginTime = DATEADD(DAY,0,CONVERT(VARCHAR(10),A.LogoutTime,121)) 
+ 	FROM #CombinedData AS A WHERE A.LoginTime IS NULL;
+	UPDATE A SET A.LogOutTime = DATEADD(MI,1439,CONVERT(VARCHAR(10),A.LoginTime,121)) 
+	FROM #CombinedData AS A WHERE A.LogOutTime IS NULL;
+
+	select * from #CombinedData 
+  ]]>
+  </select>
+    
+</mapper>

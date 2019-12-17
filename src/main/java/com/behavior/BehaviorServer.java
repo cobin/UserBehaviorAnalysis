@@ -5,13 +5,7 @@ import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,35 +13,22 @@ import com.behavior.scheduler.WorkJob;
 import com.cobin.util.BaseObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpServer;  
 
-
-/**
- * @author Cobin
- */
 @SuppressWarnings("restriction")
 public class BehaviorServer extends BaseObject {
 	private HttpServer hs = null;
 	private BehaviorMain behavior;
-	private ExecutorService singleThreadPool;
 	public BehaviorServer(BehaviorMain behavior) {
 		this.behavior = behavior;
 	}
+	
 	private void createServer() {
-		try{
-			ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
-					.setNameFormat("web-pool-%d").build();
-			singleThreadPool = new ThreadPoolExecutor(1, 1,
-					0L, TimeUnit.MILLISECONDS,
-					new LinkedBlockingQueue<>(1024), namedThreadFactory, new ThreadPoolExecutor.AbortPolicy());
-
-			log.info("监控服务启动...(29999)");
-			// 设置HttpServer的端口为80
-			hs = HttpServer.create(new InetSocketAddress(29999),0);
-			// 用MyHandler类内处理到/的请求
-			hs.createContext("/bm", new MyHandler());
-			// creates a default executor
-			hs.setExecutor(null);
+		try{			
+			log.debug("监控服务启动...");
+			hs = HttpServer.create(new InetSocketAddress(29999),0);// 设置HttpServer的端口为80   
+			hs.createContext("/bm", new MyHandler());// 用MyHandler类内处理到/的请求   
+			hs.setExecutor(null); // creates a default executor   
 			hs.start(); 
 		}catch(Exception ioe){
 			log.error(ioe);
@@ -55,10 +36,9 @@ public class BehaviorServer extends BaseObject {
 		hs = null;
 	}
 	
-	private void stop(){
+	public void stop(){
 		if(hs!=null){
-			hs.stop(0);
-			singleThreadPool.shutdown();
+			hs.stop(0);			 
 		}
 	}
 
@@ -88,14 +68,16 @@ public class BehaviorServer extends BaseObject {
 			
 			String reqQuery =t.getRequestURI().toString();
 						
-			log.info(reqQuery);
+			log.debug(reqQuery);
 			
-			if(reqQuery.contains("reloadConfig")) {
+			if(reqQuery.indexOf("reloadConfig")!=-1) {
 				behavior.reloadConfig();
 				Properties p=behavior.getConfig();
-				for (Entry<Object, Object> entry : p.entrySet()) {
-					String key = (String) entry.getKey();
-					String value = (String) entry.getValue();
+				Iterator<Entry<Object, Object>> it = p.entrySet().iterator();
+				while (it.hasNext()) {
+					Entry<Object, Object> entry = it.next();
+					String key = (String)entry.getKey();
+					String value =(String) entry.getValue();
 					try {
 						json.put(key, value.split(","));
 					} catch (JSONException e) {
@@ -103,18 +85,21 @@ public class BehaviorServer extends BaseObject {
 				}
 //				String sVs = behavior.getConfigVals();
 //				response = "{\"success\":\"true\",\"msg\":\""+Tools.urlEncode(sVs)+"\"}";
-			}else if(reqQuery.contains("WorkCall")) {
+			}else if(reqQuery.indexOf("WorkCall")!=-1) {
 				final String cla = reqQuery.substring(reqQuery.indexOf("WorkCall"));
-				singleThreadPool.execute(()-> {
-					try {
-						log.info("执行>>"+cla);
-						Class<?> cl = Class.forName("com.behavior.scheduler."+cla.trim());
-						WorkJob job = (WorkJob)cl.newInstance();
-						job.execWork(behavior, null);
-					} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-						e.printStackTrace();
+				new Thread(new Runnable() {					
+					@Override
+					public void run() {
+						try {
+							log.debug("执行>>"+cla);
+							Class<?> cl = Class.forName("com.behavior.scheduler."+cla.trim());
+							WorkJob job = (WorkJob)cl.newInstance();
+							job.execWork(behavior, null);
+						} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+							e.printStackTrace();
+						}
 					}
-				});
+				}).start();
 			}
 			
 			String response = json.toString();
@@ -138,9 +123,8 @@ public class BehaviorServer extends BaseObject {
 		cHttpServer.createServer();
 	}
 	public static void stopServer() {
-		if(cHttpServer!=null) {
+		if(cHttpServer!=null)
 			cHttpServer.stop();
-		}
 	}
 	private static BehaviorServer cHttpServer;
 }

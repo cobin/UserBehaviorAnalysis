@@ -12,14 +12,8 @@ import org.quartz.PersistJobDataAfterExecution;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.cobin.util.CDate;
-/**
- * @author  Cobin
- * @date    2019/7/24 17:12
- * @version 1.0
- * @DisallowConcurrentExecution 不允许并发执行
-*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallZHouKeNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -56,8 +50,7 @@ public class WorkCallZHouKeNotify extends WorkJob {
 			List<Map<Object,Object>> users = ct111.querySourceZK360(date.toDate());	
 			if(!users.isEmpty()) {
 				//加载用户成单之前的查看股票情况
-				//全部资源
-				loadUser(ct111,users,date.getIntDate());
+				loadUser(ct111,users,date.getIntDate()); //全部资源
 			}
 			date.addDate(1);
 		}

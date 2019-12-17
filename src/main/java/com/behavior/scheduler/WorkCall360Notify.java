@@ -13,13 +13,7 @@ import com.behavior.mapper.mapper1110.CallTask1110Mapper;
 import com.cobin.util.CDate;
 import com.cobin.util.Tools;
 
-/**
- * @author  Cobin
- * @date    2019/7/24 16:32
- * @version 1.0
-*/
 public class WorkCall360Notify extends WorkJob {
-
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
 		try {
@@ -31,8 +25,7 @@ public class WorkCall360Notify extends WorkJob {
 		}
 	}
 
-	@Override
-	public void execWork(BehaviorMain bm, String qDate){
+	public void execWork(BehaviorMain bm,String qDate){
 		int sActDate = Tools.getInt(qDate) ;
 		if(qDate==null){
 			sActDate=20160824;
@@ -40,15 +33,13 @@ public class WorkCall360Notify extends WorkJob {
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class); 
 		CallTask1110Mapper ct1110 = bm.getMapper(CallTask1110Mapper.class);
 		int sDate = ct111.queryUserFunctionStat360Date();
-		if(sDate<20160822){
-			sDate = 20160822;
-		}
+		if(sDate<20160822) sDate = 20160822;
 		loadUser360(ct111, ct1110, sActDate,sDate,0);
 //		loadUser360Sample(ct111,sActDate,sDate);
 //		loadUser360(ct111, ct91, sActDate,sDate,5);
 	}
 	
-	private void loadUser360(CallTask111Mapper ct111, CallTask1110Mapper ct1110, int sActDate, int sDate, int servLevelId){
+	protected void loadUser360(CallTask111Mapper ct111,CallTask1110Mapper ct1110 ,int sActDate,int sDate,int servLevelId){
 		List<List<Map<Object,Object>>> qList = new ArrayList<>();
 		List<Map<Object,Object>> cList = new ArrayList<>();
 		int execCount = 0;
@@ -126,27 +117,25 @@ public class WorkCall360Notify extends WorkJob {
 	}
 	
 	
-/*
 	protected void loadUser360Sample(CallTask111Mapper ct111 ,int sActDate,int sDate){
 		List<List<Map<Object,Object>>> qList = new ArrayList<>();
 		List<Map<Object,Object>> cList = new ArrayList<>();
 		int execCount = 0;
 //		第一步获取新号码
 		int nLastDate = CDate.getInstance().getIntDate();
-		//不满足抓取最小时间
-		if(nLastDate<sDate){
+		if(nLastDate<sDate){//不满足抓取最小时间
 			log.debug(TAG+">没有满足当前需要的日"+sDate+",终止抓取！");
 			return;
 		}
 		if(nLastDate<sActDate){
 			sActDate = nLastDate;
-		}
-		List<Map<Object,Object>> newClassAll = ct111.querySample360Users();
+		} 
+		List<Map<Object,Object>> newClassAll = ct111.querySample360Users(); 
 		log.debug(TAG+">从"+sActDate+"开始新资源数:"+newClassAll.size());
 		CDate cDate = new CDate(sDate+"000000");
-		//cDate.addDate(1);
-		while(cDate.getIntDate()<nLastDate){
-			for(Map<Object,Object> row:newClassAll){
+		//cDate.addDate(1);		
+		while(cDate.getIntDate()<nLastDate){			
+			for(Map<Object,Object> row:newClassAll){			
 				cList.add(row);
 				execCount++;
 				if(cList.size()>=insertSize){
@@ -173,10 +162,8 @@ public class WorkCall360Notify extends WorkJob {
 		}
 		log.info(TAG+">执行完毕！");
 	}
-*/
-
-
-	private void callUserFunctionStat360(CallTask111Mapper ct111, int logDate, List<List<Map<Object, Object>>> qList){
+	
+	public void callUserFunctionStat360(CallTask111Mapper ct111,int logDate,List<List<Map<Object,Object>>> qList){
 		List<Map<Object,Object>> result = ct111.queryUserFunctionStat360(logDate,qList);
 		List<List<Map<Object,Object>>> qData = new ArrayList<>();
 		List<Map<Object,Object>> iData = new ArrayList<>();

@@ -13,14 +13,8 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper76.CallTask76Mapper;
 import com.cobin.util.CDate;
-/**
- * @author  Cobin
- * @date    2019/7/24 17:13
- * @version 1.0
- * @DisallowConcurrentExecution  不允许并发执行
-*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallZHouKeOnlineNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -51,8 +45,7 @@ public class WorkCallZHouKeOnlineNotify extends WorkJob {
 		}
 		while(date.getTime()<System.currentTimeMillis()){
 			//加载用户成单之前的查看股票情况
-			//全部资源
-			loadUser(ct111,ct76,date.getIntDate());
+			loadUser(ct111,ct76,date.getIntDate()); //全部资源
 			date.addDate(1);
 		}
 	}

@@ -15,11 +15,7 @@ import com.behavior.mapper.mapper76.CallTask76Mapper;
 import com.behavior.mapper.mapper91.CallTask91Mapper;
 import com.cobin.util.CDate;
 import com.cobin.util.Tools;
-/**
- * @author  Cobin
- * @date    2019/7/24 16:45
- * @version 1.0
-*/
+
 public class WorkCallNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -58,7 +54,7 @@ public class WorkCallNotify extends WorkJob {
 		
 	}
 	
-	private void loadUser(CallTask111Mapper ct111, CallTask76Mapper ct76, CallTask91Mapper ct91, String sActDate, String sDate){
+	protected void loadUser(CallTask111Mapper ct111,CallTask76Mapper ct76,CallTask91Mapper ct91 ,String sActDate ,String sDate){
 		List<List<Map<Object,Object>>> qList = new ArrayList<>();
 		List<Map<Object,Object>> cList = new ArrayList<>();
 		int nDate = CDate.formatIntDate();
@@ -67,16 +63,16 @@ public class WorkCallNotify extends WorkJob {
 		//ct91.queryNewBieUserClassAll(Tools.getInt(sActDate),nDate); 
 		List<Map<Object,Object>> newClassAll = ct111.queryNewPersonKeeper(Tools.getInt(sActDate),nDate);
 
-		log.info(TAG+">从"+sActDate+"开始新资源数:"+newClassAll.size());
+		log.debug(TAG+">从"+sActDate+"开始新资源数:"+newClassAll.size());
 		//ct91.queryNewBieUserClass(Tools.getInt(sDate),nDate); 
 		List<Map<Object,Object>> newClass = ct111.queryNewPersonKeeper(Tools.getInt(sDate),nDate);
 		if(newClass.size()>0){
-			log.info(TAG+">"+sDate+"有新号记录:"+newClass.size());
+			log.debug(TAG+">"+sDate+"有新号记录:"+newClass.size());
 		}
-		//新号
-		callTask(ct111,newClass,1);
+		callTask(ct111,newClass,1);//新号	
 		newClass.clear();
-		for(Map<Object,Object> row:newClassAll){
+		newClass = null;
+		for(Map<Object,Object> row:newClassAll){			
 			cList.add(row);
 			execCount++;
 			if(cList.size()>=insertSize){
@@ -99,7 +95,7 @@ public class WorkCallNotify extends WorkJob {
 		}
 	}
 	//只获取此分号用户的第一次通话所在天的通话记录
-	private void loadUserPhone(CallTask111Mapper ct111, CallTask91Mapper ct91, String sDate){
+	protected void loadUserPhone(CallTask111Mapper ct111,CallTask91Mapper ct91,String sDate){
 		int execCount=0;
 		int nDate = ct111.queryPhoneMaxDate();
 		if(nDate>0){
@@ -109,9 +105,8 @@ public class WorkCallNotify extends WorkJob {
 			sDate+="000000";
 		}
 		CDate qDate = new CDate(sDate);
-		if(nDate>0) {
+		if(nDate>0)
 			qDate.addDate(-7);
-		}
 		
 		int classDate = ct111.queryNewClassMaxDate();
 		CDate cqDate = new CDate(""+classDate);		
@@ -199,7 +194,7 @@ public class WorkCallNotify extends WorkJob {
 		}
 	}
 	
-	private void callPhoneUser(CallTask111Mapper ct111, CallTask91Mapper ct91, String sDate, List<List<Map<Object, Object>>> cList){
+	protected void callPhoneUser(CallTask111Mapper ct111,CallTask91Mapper ct91,String sDate,List<List<Map<Object,Object>>> cList){
 		List<Map<Object,Object>> result = null;
 		if(sDate!=null){
 			CDate _date1 = new CDate(sDate);		
@@ -211,15 +206,14 @@ public class WorkCallNotify extends WorkJob {
 		}
 		if(result.size()>0){
 			log.debug(TAG+">"+sDate+"有通话记录:"+result.size());
-			//通话日志
-			callTask(ct111,result,2);
+			callTask(ct111,result,2);//通话日志
 		}
 	}
 	
-	private void loadUser(CallTask111Mapper ct111, String sDate, String loginDate){
+	protected void loadUser(CallTask111Mapper ct111,String sDate,String loginDate){
 		List<List<Map<Object,Object>>> qList = new ArrayList<>();
 		List<Map<Object,Object>> cList = new ArrayList<>();
-		int execCount;
+		int execCount = 0;
 		List<Map<Object,Object>> loginOneDay  = ct111.queryLoginUser(sDate,loginDate);
 		log.debug(TAG+">处理:"+loginOneDay.size());
 		cList.clear();
@@ -228,7 +222,7 @@ public class WorkCallNotify extends WorkJob {
 		for(Map<Object,Object> row:loginOneDay){
 			execCount++;
 			row.put("sourceId", 0);
-			int _ldate = (Integer) row.get("loginDate");
+			int _ldate = ((Integer)row.get("loginDate")).intValue();
 			if(logDate==0){
 				logDate = _ldate;
 			}
@@ -268,23 +262,21 @@ public class WorkCallNotify extends WorkJob {
 		}
 	}
 	
-	private void callTask(CallTask111Mapper ct111, CallTask76Mapper ct76, CallTask91Mapper ct91, List<List<Map<Object, Object>>> cList, String sDate){
+	protected void callTask(CallTask111Mapper ct111,CallTask76Mapper ct76,CallTask91Mapper ct91,List<List<Map<Object,Object>>> cList,String sDate){
 //		List<Map<Object,Object>> result = ct76.queryLogin(sDate.substring(0,6), cList,7);
 		List<Map<Object,Object>> result = ct76.queryLoginOnline(cList,7);
 		if(result.size()>0){
 			log.debug(TAG+">"+sDate+"有登录记录:"+result.size());
-			//登录日志
-			callTask(ct111,result,3);
+			callTask(ct111,result,3);//登录日志
 		}
 		result = ct91.queryNerve(cList,7);
 		if(result.size()>0){
 			log.debug(TAG+">"+sDate+"有订单记录:"+result.size());
-			//订单
-			callTask(ct111,result,4);
+			callTask(ct111,result,4);//订单
 		}
 	}
 	
-	private static void callTask(CallTask111Mapper ct111, List<Map<Object, Object>> result, int traceAction){
+	public static void callTask(CallTask111Mapper ct111,List<Map<Object,Object>> result,int traceAction){
 		List<List<Map<Object,Object>>> qData = new ArrayList<>();
 		List<Map<Object,Object>> iData = new ArrayList<>();
 //		int iStep = 0;
@@ -318,56 +310,52 @@ public class WorkCallNotify extends WorkJob {
 		}
 	}
 	
-	private void callLoginUser(CallTask111Mapper ct111, int logDate, List<List<Map<Object, Object>>> qList){
+	public void callLoginUser(CallTask111Mapper ct111,int logDate,List<List<Map<Object,Object>>> qList){
 		List<Map<Object,Object>> result = ct111.queryUserFunctionStat(logDate,qList,null);
 		List<List<Map<Object,Object>>> qData = new ArrayList<>();
-		intoData(qData,result,insertSize);
-//		List<Map<Object,Object>> iData = new ArrayList<>();
-//		for(Map<Object,Object> r:result){
-//			iData.add(r);
-//			if(iData.size()>=insertSize){
-//				qData.add(iData);
-//				iData = new ArrayList<>();
-//			}
-//		}
-//		if(iData.size()>0){
-//			qData.add(iData);
-//		}
+		List<Map<Object,Object>> iData = new ArrayList<>();
+		for(Map<Object,Object> r:result){
+			iData.add(r);
+			if(iData.size()>=insertSize){
+				qData.add(iData);
+				iData = new ArrayList<>();
+			}
+		}
+		if(iData.size()>0){
+			qData.add(iData);
+		}
 		if(qData.size()>0){
 			ct111.insertUserFunctionStat(qData);
 		}
 	}
-
-
 	
-	private void callLoginUserStock(CallTask111Mapper ct111, int logDate, List<List<Map<Object, Object>>> qList){
+	public void callLoginUserStock(CallTask111Mapper ct111,int logDate,List<List<Map<Object,Object>>> qList){
 		List<Map<Object,Object>> result = ct111.queryUserActiveStocks(logDate,qList);
 		List<List<Map<Object,Object>>> qData = new ArrayList<>();
-		intoData(qData,result,insertSize);
-//		List<Map<Object,Object>> iData = new ArrayList<>();
-//		for(Map<Object,Object> r:result){
-//			iData.add(r);
-//			if(iData.size()>=insertSize){
-//				qData.add(iData);
-//				iData = new ArrayList<>();
-//			}
-//		}
-//		if(iData.size()>0){
-//			qData.add(iData);
-//		}
+		List<Map<Object,Object>> iData = new ArrayList<>();
+		for(Map<Object,Object> r:result){
+			iData.add(r);
+			if(iData.size()>=insertSize){
+				qData.add(iData);
+				iData = new ArrayList<>();
+			}
+		}
+		if(iData.size()>0){
+			qData.add(iData);
+		}
 		if(qData.size()>0){
 			ct111.insertUserActiveStocks(qData);
 		}
 	}
 	
-	private void callUserIndividualIndex(CallTask111Mapper ct111, String sActDate){
+	public void callUserIndividualIndex(CallTask111Mapper ct111,String sActDate){
 		Map<Object,Object> mPro = new HashMap<>();
 		mPro.put("sdate", Tools.getInt(sActDate));
 		mPro.put("edate", CDate.formatIntDate());
 		ct111.updateUserIndividualIndex(mPro);
 		log.debug(mPro);
 	}
-	private void callUserUnLock(CallTask111Mapper ct111, CallTask69Mapper ct69, String sActDate){
+	public void callUserUnLock(CallTask111Mapper ct111,CallTask69Mapper ct69,String sActDate){
 		List<Map<Object,Object>> result = ct111.queryUserLock(Tools.getInt(sActDate),CDate.formatIntDate());
 		List<List<Map<Object,Object>>> qData = new ArrayList<>();
 		List<Map<Object,Object>> iData = new ArrayList<>();
@@ -390,17 +378,16 @@ public class WorkCallNotify extends WorkJob {
 		log.debug(TAG+">更新销售解锁:"+resultData.size());
 		qData.clear();
 		iData.clear();
-		intoData(qData,resultData,insertSize);
-//		for(Map<Object,Object> r:resultData){
-//			iData.add(r);
-//			if(iData.size()>=insertSize){
-//				qData.add(iData);
-//				iData = new ArrayList<>();
-//			}
-//		}
-//		if(iData.size()>0){
-//			qData.add(iData);
-//		}
+		for(Map<Object,Object> r:resultData){
+			iData.add(r);
+			if(iData.size()>=insertSize){
+				qData.add(iData);
+				iData = new ArrayList<>();
+			}
+		}
+		if(iData.size()>0){
+			qData.add(iData);
+		}
 		if(qData.size()>0){
 			ct111.updateUserUnLock(qData);
 		}

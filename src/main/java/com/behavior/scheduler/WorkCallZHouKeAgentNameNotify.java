@@ -12,11 +12,6 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
 
-/**
- * @author  Cobin
- * @date    2019/7/24 17:03
- * @version 1.0
-*/
 public class WorkCallZHouKeAgentNameNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -28,8 +23,7 @@ public class WorkCallZHouKeAgentNameNotify extends WorkJob {
 			e.printStackTrace();
 		}
 	}
-	@Override
-    public void execWork(BehaviorMain bm, String qDate){
+	public void execWork(BehaviorMain bm,String qDate){
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class); 
 		CallTask69Mapper ct69 = bm.getMapper(CallTask69Mapper.class);
 		loadAgentName2Domain(ct111,ct69);
@@ -46,17 +40,16 @@ public class WorkCallZHouKeAgentNameNotify extends WorkJob {
 			log.debug(Thread.currentThread().getName()+">"+TAG+">AgentName数据大小为："+result.size());	
 			for(Map<Object,Object> r:result){
 				execCount++;
-				changeMapVal(keys,r);
-//				for(String key:keys){
-//					Object obj = r.get(key);
-//					if(obj==null){
-//						r.put(key, "NULL");
-//					}else if(obj instanceof String){
-//						r.put(key, "'"+obj+"'");
-//					}else if(obj instanceof Date){
-//						r.put(key, "'"+obj+"'");
-//					}
-//				}
+				for(String key:keys){
+					Object obj = r.get(key);
+					if(obj==null){
+						r.put(key, "NULL");
+					}else if(obj instanceof String){
+						r.put(key, "'"+obj+"'");
+					}else if(obj instanceof Date){
+						r.put(key, "'"+obj+"'");
+					}				
+				}
 				iData.add(r);
 				if(iData.size()>=insertSize){
 					qData.add(iData);
@@ -81,6 +74,6 @@ public class WorkCallZHouKeAgentNameNotify extends WorkJob {
 	}
 
 	private String[] keys = {"KEYWORD","DOMAIN","ADDTIME","MODIFYTIME","TYPE","ADDPERSON","MATCHLEVEL","MODIFYPERSON"};
-	private static final int rowCount = 50000;
+	public static final int rowCount = 50000;
 	public static final int insertSize = 50000;
 }

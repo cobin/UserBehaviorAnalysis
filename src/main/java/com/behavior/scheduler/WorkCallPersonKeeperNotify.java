@@ -13,14 +13,8 @@ import org.quartz.PersistJobDataAfterExecution;
 import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper111.CallTask111Mapper;
 import com.behavior.mapper.mapper69.CallTask69Mapper;
-/**
- * @author  Cobin
- * @date    2019/7/24 16:55
- * @version 1.0
- * @DisallowConcurrentExecution 不允许并发执行
-*/
 @PersistJobDataAfterExecution
-@DisallowConcurrentExecution
+@DisallowConcurrentExecution //// 不允许并发执行
 public class WorkCallPersonKeeperNotify extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -46,9 +40,7 @@ public class WorkCallPersonKeeperNotify extends WorkJob {
 				break;
 			}
 			xCount++;
-			if(xCount>2000){
-				break;
-			}
+			if(xCount>2000)break;
 		}
 	}
 	//
@@ -68,17 +60,16 @@ public class WorkCallPersonKeeperNotify extends WorkJob {
 		log.debug(Thread.currentThread().getName()+">"+TAG+">Oracle-PersonKeeper同步总数为:"+result.size());	
 		for(Map<Object,Object> r:result){
 			execCount++;
-			changeMapVal(keysPersonKeeper,r);
-//			for(String key:keysPersonKeeper){
-//				Object obj = r.get(key);
-//				if(obj==null){
-//					r.put(key, "NULL");
-//				}else if(obj instanceof String){
-//					r.put(key, "'"+obj+"'");
-//				}else if(obj instanceof Date){
-//					r.put(key, "'"+obj+"'");
-//				}
-//			}
+			for(String key:keysPersonKeeper){
+				Object obj = r.get(key);
+				if(obj==null){
+					r.put(key, "NULL");
+				}else if(obj instanceof String){
+					r.put(key, "'"+obj+"'");
+				}else if(obj instanceof Date){
+					r.put(key, "'"+obj+"'");
+				}				
+			}
 			iData.add(r);
 			if(iData.size()>=insertSize){
 				qData.add(iData);
@@ -101,7 +92,7 @@ public class WorkCallPersonKeeperNotify extends WorkJob {
 	}
 	
 	public static final int insertSize = 1000;
-	private static final int loadSubTime = 8*60*60*1000;
+	public static final int loadSubTime = 8*60*60*1000;
 	private Date curQuery = null;
-	private static String[] keysPersonKeeper= {"LOGTIME","COMMENTS","OLDKEEPERNAME","NEWKEEPERNAME"};
+	public static String[] keysPersonKeeper= {"LOGTIME","COMMENTS","OLDKEEPERNAME","NEWKEEPERNAME"};
 }

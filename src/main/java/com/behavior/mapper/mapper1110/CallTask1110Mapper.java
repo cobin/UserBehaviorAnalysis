@@ -6,7 +6,7 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 
 public interface CallTask1110Mapper {
-	int updateKeeperPlatStatus360(Map<Object, Object> update);
+	int updateKeeperPlatStatus360(Map<Object,Object> update);
 	List<Map<Object,Object>> queryFunctionUsers(@Param("actId") int actId);
 	List<Map<Object,Object>> queryActPeriod();
 	

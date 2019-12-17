@@ -29,11 +29,6 @@ import com.behavior.BehaviorMain;
 import com.behavior.mapper.mapper9101.CallTask9101Mapper;
 import com.cobin.util.Tools;
 
-/**
- * @author  Cobin
- * @date    2019/7/24 17:03
- * @version 1.0
-*/
 public class WorkCallUserWeek extends WorkJob {
 	@Override
 	public void execute(JobExecutionContext arg0) throws JobExecutionException {
@@ -234,15 +229,14 @@ public class WorkCallUserWeek extends WorkJob {
 							m.put("adeptId", deptCenter[0]);
 						}
 					}
-					String _key = key.substring(0, key.length()-3);
-					m.put(_key, mv.getValue());
+					m.put(key.substring(0, key.length()-3), mv.getValue());
 					if(region.equals("41") || region.equals("61")) {
-						m.put(_key+"Xd", mv.getValue());
+						m.put(key.substring(0, key.length()-3)+"Xd", mv.getValue());
 					}else {
-						Double dd =(Double) m.get(_key+"Xd");
+						Double dd =(Double) m.get(key.substring(0, key.length()-3)+"Xd");
 						if(dd==null) dd = 0d;
 						dd +=(double)mv.getValue();
-						m.put(_key+"Xd", dd);
+						m.put(key.substring(0, key.length()-3)+"Xd", dd);
 					}
 				}
 			}
