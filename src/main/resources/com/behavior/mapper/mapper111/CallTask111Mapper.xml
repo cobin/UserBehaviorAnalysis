@@ -1,0 +1,1809 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper111.CallTask111Mapper" >  
+ 
+ <!-- WHERE actid=49 -->
+ <select id="querySourceZK360" parameterType="Map" resultType="Map">
+  DECLARE @actId INT
+  SELECT @actId = MIN(a.ActId)
+  FROM [DB_WebNerveData].[dbo].[_Mission_Act_Info] a
+  INNER JOIN (
+	  SELECT  MIN (b.StartDate) AS StartDate,MIN(b.EndDate) AS endDate
+	  FROM   [DB_WebNerveData].[dbo].[_Mission_Act_Info] b 
+	  WHERE  b.actType=1 and cast(#{sDate,jdbcType=TIMESTAMP} as date) BETWEEN startdate AND b.EndDate
+  ) b ON a.startDate=b.startDate  AND a.EndDate=b.endDate
+  
+  SELECT @actId= MIN(actid)
+  FROM [DB_CompanyData].[dbo].[_NewBieUserSource]  a
+  WHERE   a.Actid>= @actId
+  SELECT personId,sourceId,MAX(sdate) AS sdate
+  FROM [DB_CompanyData].[dbo].[_NewBieUserSource]  a
+  WHERE   a.Actid= @actId
+  GROUP BY Personid,SourceId
+  ORDER BY Personid,SourceId
+ </select>
+
+  <select id="queryUserFunctionStat" parameterType="Map" resultType="Map">
+    if object_id(N'BD_UsersOR.dbo._UserFunctionStat_${nYearMonthDay}',N'U') is not NULL
+    begin
+  	declare @tmpData table(personId int primary key,newDate int,userType int,sourceId int null);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.personId},${mapV.sdate},${mapV.userType},${mapV.sourceId})
+	  	</foreach>
+  	</foreach>
+    select a.*,b.newDate,b.userType,b.sourceId from BD_UsersOR.dbo._UserFunctionStat_${nYearMonthDay} a
+    inner join @tmpData b on a.personId = b.personId
+    <if test="funIds!=null">
+    where a.functionId in(${funIds})
+    </if>
+    end
+    else
+    begin
+    SELECT RAND()AS personId WHERE 4=5
+    end    
+  </select> 
+  <insert id="insertUserTrace" parameterType="Map">
+  	declare @tmpData table(personId int,traceTime bigint,traceAction int
+  		,hold int null,times int null,extra_0 varchar(50) null,extra_1 varchar(50) null
+  		,primary key(personId,traceTime))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personId},${mapV.traceTime},${mapV.traceAction}
+	  	,${mapV.hold},${mapV.times},${mapV.extra_0},${mapV.extra_1}
+	  	)
+	  	</foreach> 
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserTrace AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.traceTime = S.traceTime and T.traceAction=S.traceAction
+	<!-- extra_0 现在作为keepId来使用 -->
+	WHEN MATCHED THEN UPDATE SET T.extra_0 = S.extra_0,T.hold=S.hold,T.times=S.times, T.extra_1 = S.extra_1
+	WHEN NOT MATCHED THEN INSERT VALUES(S.personId,S.traceTime,S.traceAction,S.hold,S.times,S.extra_0,S.extra_1);
+  </insert>
+  <!-- {call BD_Users.dbo.P_Behavior_Get_UserStatus @sDate=${sDate}, @logDays=${logDays}, @status=${status}, @errMsg=null} -->
+  <select id="queryLoginUser" parameterType="Map" resultType="Map" >   
+   ;WITH NewUser AS (
+	SELECT personId
+	FROM BD_Users.dbo._Behavior_UserTrace a 
+	WHERE a.traceAction = 1
+	<![CDATA[
+	AND a.traceTime>=cast(${sDate} as bigint)*1000000
+	]]>
+	)
+	SELECT a.personId,cast(loginDate as int) as loginDate,newDate as sdate
+			,case when (nStatus&amp;4)=4 then 41 else 42 end as userType
+	FROM
+    (
+		SELECT personId,SUM(POWER(2,a.traceAction-1)) AS nStatus
+			,MIN(CASE WHEN a.traceAction=1 THEN a.traceTime/1000000 END) AS newDate
+			,MIN(CASE WHEN a.traceAction=3 THEN a.traceTime/1000000 END) AS loginDate
+			,MIN(CASE WHEN a.traceAction=3 then traceDays end) AS loginDays
+		FROM (
+			SELECT a.personId,a.traceAction,MIN(a.traceTime) AS traceTime
+			,COUNT(DISTINCT a.traceTime/1000000) AS traceDays 
+			FROM BD_Users.dbo._Behavior_UserTrace a 
+			INNER JOIN NewUser b ON a.personId = b.personId 
+			GROUP BY a.personId,a.traceAction
+		) a
+		GROUP BY a.personId
+	) a
+	WHERE loginDate>=${loginDate} and (((a.nStatus&amp;4)=4 AND logindays=1) OR (a.nStatus&amp;8)=8)
+	order by loginDate
+  </select>
+  <insert id="insertUserFunctionStat" parameterType="Map">
+    declare @tmpData table(personid int,productid int,functionid int
+  		,refcount int ,activetime int ,date int ,newDate int,userType int
+  		,primary key(personId,productid,functionId))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.functionid}
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserFunctionStat AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.functionId = S.functionId AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.personId,S.productid,S.functionid,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  </insert>
+  
+  <select id="queryUserActiveStocks" parameterType="Map" resultType="Map">
+    if object_id(N'BD_UsersOR.dbo._UserActiveStocks_${nYearMonthDay}',N'U') is not NULL
+    begin
+  	declare @tmpData table(personId int primary key,newDate int,userType int,sourceId int null);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.personId},${mapV.sdate},${mapV.userType},${mapV.sourceId})
+	  	</foreach>
+  	</foreach>
+    select a.*,b.newDate,b.userType,b.sourceId from BD_UsersOR.dbo._UserActiveStocks_${nYearMonthDay} a
+    inner join @tmpData b on a.personId = b.personId
+    end
+    else
+    begin
+    SELECT RAND()AS personId WHERE 4=5
+    end
+  </select> 
+  
+  <insert id="insertUserActiveStocks" parameterType="Map">
+    declare @tmpData table(personid int,productid int,idStk int,marketcode varchar(50)
+  		,refcount int ,activetime int ,date int ,newDate int,userType int
+  		,primary key(personId,productid,idStk,date))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.idStk},'${mapV.marketcode}'
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserActiveStocks AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.idStk = S.idStk AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.personId,S.productid,S.idStk,S.marketcode,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  	
+  </insert>
+  
+  <parameterMap type="Map" id="proIndex">
+  <parameter property="sdate" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer" />
+  <parameter property="edate" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer" />
+  <parameter property="outMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  </parameterMap>
+  <update id="updateUserIndividualIndex" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UserIndividualIndex_Main_Interface(?, ? , ?, ?)}
+  </update>
+  <select id="queryUserLock" parameterType="Map" resultType="Map">
+  	select personId 
+  	from BD_Users.dbo._Behavior_UserIndividualIndex a
+  	where a.isLocked=1 and a.sdate>=#{sdate,jdbcType=INTEGER} and a.sdate&lt;=#{edate,jdbcType=INTEGER}
+  </select>
+  <update id="updateUserUnLock" parameterType="Map">
+  	declare @tmpData table(personId int,nx int,dd int,hy int,zj int,zlcw int,primary key(personId))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.PERSONID},${mapV.NX},${mapV.DD},${mapV.HY},${mapV.ZJ},${mapV.ZLCW})
+	  	</foreach>
+  	</foreach>
+  	;WITH tmpUser AS(
+  		SELECT a.PersonId 
+		,CASE WHEN a.dd>0 AND b.dd=0 THEN 1
+			  WHEN a.nx>0 AND b.nx=0 THEN 1
+			  WHEN a.hy>0 AND b.hy=0 THEN 1
+			  WHEN a.zj>0 AND b.zj=0 THEN 1
+			  WHEN a.zlcw>0 AND b.zlcw=0 THEN 1
+			  ELSE 0 END AS isUserLocked
+	    FROM [DBNERVE].[dbo].[_PostSale_Cust_Product_FuncLock] a
+	    INNER JOIN @tmpData b ON a.PersonId=b.personId 
+  	)
+  	
+  	MERGE INTO BD_Users.dbo._Behavior_UserIndividualIndex AS T
+	USING tmpUser AS S
+	ON T.personId=S.personId and S.isUserLocked=0
+	WHEN MATCHED THEN 
+		UPDATE SET T.isLocked=isnull(T.isLocked,0)|2;
+  </update>
+  <select id="queryPhoneMaxDate" parameterType="Map" resultType="Integer">
+  	SELECT isnull(CAST(max(traceTime)/1000000 AS INT),0) as traceDate 
+  	FROM dbo._Behavior_UserTrace a 
+  	WHERE a.traceAction = 2
+  </select>
+  <select id="queryNewClassMaxDate" parameterType="Map" resultType="Integer">
+  	SELECT isnull(CAST(max(traceTime)/1000000 AS INT),0) as traceDate 
+  	FROM dbo._Behavior_UserTrace a 
+  	WHERE a.traceAction = 1
+  </select>
+  <select id="queryPhoneUsers" parameterType="Map" resultType="Map">
+  	DECLARE @date BIGINT
+	SELECT @date = MAX(traceTime)/1000000*1000000 FROM   dbo._Behavior_UserTrace a 
+		WHERE a.traceAction = 2
+  	SELECT a.personId,FORMAT(a.traceTime,'####-##-## ##:##:##') AS traceTime FROM
+	(
+		SELECT *
+		FROM dbo._Behavior_UserTrace a 
+		WHERE cast(a.traceTime/1000000 as int)=#{sDate,jdbcType=INTEGER}
+		AND a.traceAction = 1
+	) a 
+	LEFT JOIN 
+	(
+		SELECT DISTINCT a.personId 
+		FROM dbo._Behavior_UserTrace a 
+		WHERE a.traceAction = 2 AND a.traceTime&lt;@date
+	) b ON a.personId = b.personId
+	WHERE b.personId IS NULL 
+	order by a.traceTime asc
+  </select>
+  <select id="queryPhoneUsersOneDay" parameterType="Map" resultType="Map">
+  	SELECT distinct b.personId,FORMAT(b.traceTime,'####-##-## ##:##:##') AS traceTime
+	FROM [BD_Users].[dbo].[_Behavior_UserTrace] a
+	INNER JOIN  dbo._Behavior_UserTrace b ON a.personId=b.personId AND b.traceAction=1
+	WHERE a.traceAction = 2 AND CAST(b.traceTime/1000000 AS INT) = a.traceTime/1000000
+	and cast(b.traceTime/1000000 as int)=#{sDate,jdbcType=INTEGER} 
+	and a.extra_1 is null 
+  </select>
+  
+  <select id="queryUserFunctionStat360" parameterType="Map" resultType="Map">
+    if object_id(N'BD_UsersOR.dbo._UserFunctionStat_${nYearMonthDay}',N'U') is not NULL
+    begin
+  	declare @tmpData table(personId int primary key);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.personId})
+	  	</foreach>
+  	</foreach>
+    select a.personid,a.functionid,SUM(a.activetime) as activetime,COUNT(*) as nTimes
+    from BD_UsersOR.dbo._UserFunctionStat_${nYearMonthDay} a
+    inner join @tmpData b on a.personId = b.personId
+    GROUP BY a.personid,a.functionid
+    end
+    else
+    begin
+    SELECT RAND() AS personId WHERE 4=5
+    end    
+  </select> 
+  
+  <insert id="insertUserFunctionStat360" parameterType="Map">
+    declare @tmpData table(personid int,functionid int
+  		,activetime int ,sdate int ,nTimes int
+  		,primary key(personId,functionId,sdate))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.functionid},${mapV.activetime},${mapV.sDate},${mapV.nTimes}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserFunctionStat360 AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.functionId = S.functionId AND T.sdate = S.sdate   
+	WHEN MATCHED THEN UPDATE SET T.activetime = S.activetime,T.nTimes = S.nTimes
+	WHEN NOT MATCHED THEN INSERT(personId,functionid,activetime,sdate,nTimes) VALUES(S.personId,S.functionid,S.activetime,S.sdate,S.nTimes);
+  </insert>
+  <select id="queryUserFunctionStat360Date" parameterType="Map" resultType="Integer">
+  SELECT ISNULL(MAX(sdate),0) FROM dbo._Behavior_UserFunctionStat360 WHERE sdate&lt;CAST(FORMAT(GETDATE(),'yyyyMMdd') AS INT)
+  </select>
+  
+  <select id="querySample360Users" parameterType="Map" resultType="Map">
+  SELECT personId
+  FROM [BD_UserNT].[dbo].[_Person360_TestSample_Act31]
+  </select>
+  
+  <insert id="insertUserActiveStocksTJ" parameterType="Map">
+    declare @tmpData table(personid int,productid int,idStk int,marketcode varchar(50)
+  		,refcount int ,activetime int ,date int ,newDate int,userType int
+  		,primary key(personId,productid,idStk,date))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.idStk},'${mapV.marketcode}'
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserActiveStocks_tj AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.idStk = S.idStk AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.personId,S.productid,S.idStk,S.marketcode,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  	
+  </insert>
+  
+  <insert id="insertUserActiveStocksQX" parameterType="Map">
+    declare @tmpData table(personid int,productid int,idStk int,marketcode varchar(50)
+  		,refcount int ,activetime int ,date int ,newDate int,userType int
+  		,primary key(personId,productid,idStk,date))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.idStk},'${mapV.marketcode}'
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserActiveStocks_qx AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.idStk = S.idStk AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.personId,S.productid,S.idStk,S.marketcode,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  	
+  </insert>
+  
+  <select id="queryUserFunctionStat3600MaxDate" parameterType="Map" resultType="Integer">
+  	select isnull(max([date]),0) 
+  	from BD_Users.dbo._Behavior_UserFunctionStat_3600 
+  	where date>${qDate}
+  </select>
+  
+  <insert id="insertUserFunctionStat3600" parameterType="Map">
+    declare @tmpData table(personid int,productid int,functionid int
+  		,refcount int ,activetime int ,date int ,newDate int,userType int,sourceId int
+  		,primary key(personId,productid,functionId))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.functionid}
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+		,${mapV.sourceId}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserFunctionStat_3600 AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.functionId = S.functionId AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.sourceId,S.personId,S.productid,S.functionid,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  </insert>
+  
+  <select id="getZhouKeMaxDate360" parameterType="Map" resultType="Integer">
+  SELECT isnull(MAX(date),0)
+  FROM [BD_Users].[dbo].[_Behavior_UserFunctionStat_360]
+  </select>
+  
+  <insert id="insertUserFunctionStatZK" parameterType="Map">
+    declare @tmpData table(personid int,productid int,functionid int
+  		,refcount int ,activetime int ,date int ,newDate int,userType int,sourceId int
+  		,primary key(personId,productid,functionId))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.functionid}
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+	  	,${mapV.sourceId}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserFunctionStat_360 AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.functionId = S.functionId AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.personId,S.sourceId,S.productid,S.functionid,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  </insert>
+  <insert id="insertUserActiveStocksZK" parameterType="Map">
+    declare @tmpData table(personid int,productid int,idStk int,marketcode varchar(50)
+  		,refcount int ,activetime int ,date int ,newDate int,userType int,sourceId int
+  		,primary key(personId,productid,idStk,date))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.idStk},'${mapV.marketcode}'
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+	  	,${mapV.sourceId}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserActiveStocks_360 AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.idStk = S.idStk AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.personId,S.sourceId,S.productid,S.idStk,S.marketcode,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  	
+  </insert>
+  
+  <select id="getUserOnlineMaxDate" parameterType="Map" resultType="Integer">
+  SELECT isnull(MAX(date),0)
+  FROM [BD_UserNT].[dbo].[_Compass_Users_Online_St_Time]
+  </select>
+  <insert id="insertUserOnline" parameterType="Map">
+    declare @tmpData table(PersonId int,Date int,OnlineTime int,MembersPoint int,PointUpdateDate int,primary key(personId,date))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.PersonId},${mapV.Date},${mapV.OnlineTime},${mapV.MembersPoint},${mapV.PointUpdateDate}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO [BD_UserNT].[dbo].[_Compass_Users_Online_St_Time] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.Date = S.Date 
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.PersonId,S.Date,S.OnlineTime,S.MembersPoint,S.PointUpdateDate);
+  	
+  </insert>
+  
+  <insert id="insertNextVisitTime" parameterType="Map">
+    declare @tmpData table(PersonId int,sDate int,NextVisitTime datetime,primary key(PersonId,NextVisitTime))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.NERVEID},${mapV.SDATE},'${mapV.NEXTVISITTIME}'
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO [BD_UserNT].[dbo].[_UserNextVisitTimeLog] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.NextVisitTime = S.NextVisitTime 
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.sDate,S.PersonId,S.NextVisitTime);
+  	
+  </insert>
+  
+  <insert id="insertUserActiveStocks3600" parameterType="Map">
+    declare @tmpData table(personid int,productid int,idStk int,marketcode varchar(50)
+  		,refcount int ,activetime int ,date int ,newDate int,userType int,sourceId int
+  		,primary key(personId,productid,idStk,date))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.personid},${mapV.productid},${mapV.idStk},'${mapV.marketcode}'
+	  	,${mapV.refcount},${mapV.activetime},${mapV.date},${mapV.newDate},${mapV.userType}
+	  	,${mapV.sourceId}
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO BD_Users.dbo._Behavior_UserActiveStocks_3600 AS T
+	USING @tmpData AS S
+	ON T.personId = S.personId AND T.productid = S.productid AND T.idStk = S.idStk AND T.date = S.date   
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN INSERT VALUES(S.sourceId,S.personId,S.productid,S.idStk,S.marketcode,S.refcount,S.activetime,S.date,S.newDate,S.userType);
+  	
+  </insert>
+  
+  <insert id="insertBehaviour" parameterType="Map">
+    declare @tmpData table(
+		PERSONID INT NOT NULL,	
+		LOGTIME DATETIME NOT NULL,	
+		NERVEID INT NOT NULL,	
+		USERCARD VARCHAR(100),	
+		LOGTYPE INT NOT NULL,	
+		MEMO VARCHAR(4000),
+		PARAM1 VARCHAR(800),	
+		PARAM2 VARCHAR(800),
+		PARAM3 VARCHAR(800),
+		PARAM4 VARCHAR(800),
+		PARAM5 VARCHAR(800),	
+		PARAM6 VARCHAR(800),	
+		SERVICEID VARCHAR(800),	
+		S3 VARCHAR(800),	
+		MODIFYTIME DATETIME		
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.PERSONID},'${mapV.LOGTIME}',${mapV.NERVEID}
+	  	,${mapV.USERCARD},${mapV.LOGTYPE},${mapV.MEMO}
+	  	,${mapV.PARAM1},${mapV.PARAM2},${mapV.PARAM3}
+	  	,${mapV.PARAM4},${mapV.PARAM5},${mapV.PARAM6}
+	  	,${mapV.SERVICEID},${mapV.S3},'${mapV.MODIFYTIME}'
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_Behavior_Log] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME AND T.NERVEID = S.NERVEID AND T.LOGTYPE = S.LOGTYPE
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+		      ,LOGTIME
+		      ,NERVEID
+		      ,USERCARD
+		      ,LOGTYPE
+		      ,MEMO
+		      ,PARAM1
+		      ,PARAM2
+		      ,PARAM3
+		      ,PARAM4
+		      ,PARAM5
+		      ,PARAM6
+		      ,SERVICEID
+		      ,S3
+		      ,MODIFYTIME) 
+		VALUES(S.PERSONID
+		      ,S.LOGTIME
+		      ,S.NERVEID
+		      ,S.USERCARD
+		      ,S.LOGTYPE
+		      ,S.MEMO
+		      ,S.PARAM1
+		      ,S.PARAM2
+		      ,S.PARAM3
+		      ,S.PARAM4
+		      ,S.PARAM5
+		      ,S.PARAM6
+		      ,S.SERVICEID
+		      ,S.S3
+		      ,S.MODIFYTIME);  	
+  </insert>
+  
+  <select id="getBehaviourMaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2016-09-10' AS DATE)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_Behavior_Log]
+  </select>
+  
+    <insert id="insertBehavLog9" parameterType="Map">
+    declare @tmpData table(
+		PERSONID INT NOT NULL,	
+		LOGTIME DATETIME NOT NULL,	
+		NERVEID INT NOT NULL,	
+		USERCARD VARCHAR(100),	
+		LOGTYPE INT NOT NULL,	
+		MEMO VARCHAR(4000),
+		PARAM1 VARCHAR(800),	
+		PARAM2 VARCHAR(800),
+		PARAM3 VARCHAR(800),
+		PARAM4 VARCHAR(800),
+		PARAM5 VARCHAR(800),	
+		PARAM6 VARCHAR(800),	
+		SERVICEID VARCHAR(800),	
+		S3 VARCHAR(800),	
+		MODIFYTIME DATETIME		
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.PERSONID},'${mapV.LOGTIME}',${mapV.NERVEID}
+	  	,${mapV.USERCARD},${mapV.LOGTYPE},${mapV.MEMO}
+	  	,${mapV.PARAM1},${mapV.PARAM2},${mapV.PARAM3}
+	  	,${mapV.PARAM4},${mapV.PARAM5},${mapV.PARAM6}
+	  	,${mapV.SERVICEID},${mapV.S3},'${mapV.MODIFYTIME}'
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_BehavLog_9] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME AND T.NERVEID = S.NERVEID AND T.LOGTYPE = S.LOGTYPE
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+		      ,LOGTIME
+		      ,NERVEID
+		      ,USERCARD
+		      ,LOGTYPE
+		      ,MEMO
+		      ,PARAM1
+		      ,PARAM2
+		      ,PARAM3
+		      ,PARAM4
+		      ,PARAM5
+		      ,PARAM6
+		      ,SERVICEID
+		      ,S3
+		      ,MODIFYTIME) 
+		VALUES(S.PERSONID
+		      ,S.LOGTIME
+		      ,S.NERVEID
+		      ,S.USERCARD
+		      ,S.LOGTYPE
+		      ,S.MEMO
+		      ,S.PARAM1
+		      ,S.PARAM2
+		      ,S.PARAM3
+		      ,S.PARAM4
+		      ,S.PARAM5
+		      ,S.PARAM6
+		      ,S.SERVICEID
+		      ,S.S3
+		      ,S.MODIFYTIME);  	
+  </insert>
+  
+  <select id="getBehavLog9MaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2017-06-04' AS DATE)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_BehavLog_9]
+  </select>
+  
+  
+  <insert id="insertBehavLog10" parameterType="Map">
+    declare @tmpData table(
+		PERSONID INT NOT NULL,	
+		LOGTIME DATETIME NOT NULL,	
+		NERVEID INT NOT NULL,	
+		USERCARD VARCHAR(100),	
+		LOGTYPE INT NOT NULL,	
+		MEMO VARCHAR(4000),
+		PARAM1 VARCHAR(800),	
+		PARAM2 VARCHAR(800),
+		PARAM3 VARCHAR(800),
+		PARAM4 VARCHAR(800),
+		PARAM5 VARCHAR(800),	
+		PARAM6 VARCHAR(800),	
+		SERVICEID VARCHAR(800),	
+		S3 VARCHAR(800),	
+		MODIFYTIME DATETIME		
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.PERSONID},'${mapV.LOGTIME}',${mapV.NERVEID}
+	  	,${mapV.USERCARD},${mapV.LOGTYPE},${mapV.MEMO}
+	  	,${mapV.PARAM1},${mapV.PARAM2},${mapV.PARAM3}
+	  	,${mapV.PARAM4},${mapV.PARAM5},${mapV.PARAM6}
+	  	,${mapV.SERVICEID},${mapV.S3},'${mapV.MODIFYTIME}'
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_BehavLog_10] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME AND T.NERVEID = S.NERVEID AND T.LOGTYPE = S.LOGTYPE
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+		      ,LOGTIME
+		      ,NERVEID
+		      ,USERCARD
+		      ,LOGTYPE
+		      ,MEMO
+		      ,PARAM1
+		      ,PARAM2
+		      ,PARAM3
+		      ,PARAM4
+		      ,PARAM5
+		      ,PARAM6
+		      ,SERVICEID
+		      ,S3
+		      ,MODIFYTIME) 
+		VALUES(S.PERSONID
+		      ,S.LOGTIME
+		      ,S.NERVEID
+		      ,S.USERCARD
+		      ,S.LOGTYPE
+		      ,S.MEMO
+		      ,S.PARAM1
+		      ,S.PARAM2
+		      ,S.PARAM3
+		      ,S.PARAM4
+		      ,S.PARAM5
+		      ,S.PARAM6
+		      ,S.SERVICEID
+		      ,S.S3
+		      ,S.MODIFYTIME);  	
+  </insert>
+  
+  <select id="getBehavLog10MaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2017-06-04' AS DATE)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_BehavLog_10]
+  </select>
+  
+  <insert id="insertApacheLog" parameterType="Map">
+   insert into BD_UserNt.dbo._ApacheLog_UserLock([action]
+           ,[personid]
+           ,[productid]
+           ,[productlist]
+           ,[pid]
+           ,[gid]
+           ,[user]
+           ,[function]
+           ,pcode
+           ,channel
+           ,fromType
+           ,sdate
+           ,fromView)
+     VALUES
+           (#{action,jdbcType=VARCHAR}
+           ,#{personid,jdbcType=INTEGER}
+           ,#{productid,jdbcType=INTEGER}
+           ,#{productlist,jdbcType=VARCHAR}
+           ,#{pid,jdbcType=VARCHAR}
+           ,#{gid,jdbcType=VARCHAR}
+           ,#{user,jdbcType=VARCHAR}
+           ,#{function,jdbcType=VARCHAR}
+           ,#{pcode,jdbcType=VARCHAR}
+           ,#{channel,jdbcType=VARCHAR}
+           ,#{fromType,jdbcType=INTEGER}
+           ,#{sdate,jdbcType=INTEGER}
+           ,#{from,jdbcType=INTEGER}
+           )
+   </insert>
+   
+   <select id="getEbPersonQuestionMaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(CREATETIME),CAST('2001-01-01' AS DATETIME)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_Question]
+  </select>
+   <insert id="insertEbPersonQuestion" parameterType="Map">
+    declare @tmpData table(
+		PERSONID	INT NOT NULL ,
+		CREATETIME	DATETIME NULL,
+		MODIFYTIME	DATETIME NULL,
+		LASTOPID	INT NULL,
+		LASTOPNAME	VARCHAR(100) NULL ,
+		FALLIN		INT NULL,
+		OPENNESS	INT NULL,
+		SLIPPERY	INT NULL,
+		CHECKTIME	INT NULL,
+		CHECKSTOCK	INT NULL,
+		CHECKINFO	INT NULL,
+		ID_IDEA	INT NULL,
+		ID_CONFIDENCE	INT NULL,
+		ID_360_CXJC	INT NULL,
+		ID_360_NLHYD	INT NULL,
+		ID_360_DKZJ	INT NULL,
+		ID_360_ZJJSD	INT NULL,
+		[POWER]	INT NULL,
+		RELID1	INT NULL,
+		RELID2	INT NULL,
+		NERVEID INT NULL
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.PERSONID},${mapV.CREATETIME},${mapV.MODIFYTIME}
+	  	,${mapV.LASTOPID},${mapV.LASTOPNAME},${mapV.FALLIN}
+	  	,${mapV.OPENNESS},${mapV.SLIPPERY},${mapV.CHECKTIME}
+	  	,${mapV.CHECKSTOCK},${mapV.CHECKINFO},${mapV.ID_IDEA}
+	  	,${mapV.ID_CONFIDENCE},${mapV.ID_360_CXJC},${mapV.ID_360_NLHYD}
+	  	,${mapV.ID_360_DKZJ},${mapV.ID_360_ZJJSD},${mapV.POWER}
+	  	,${mapV.RELID1},${mapV.RELID2},${mapV.NERVEID}
+	  	)
+	  	</foreach>  
+	  	;
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_Question] AS T
+	USING (
+		SELECT distinct a.PERSONID,CREATETIME,MODIFYTIME,LASTOPID,LASTOPNAME,FALLIN,OPENNESS
+			,SLIPPERY,CHECKTIME,CHECKSTOCK,CHECKINFO,ID_IDEA,ID_CONFIDENCE,ID_360_CXJC,ID_360_NLHYD,ID_360_DKZJ,ID_360_ZJJSD 
+			,[POWER],RELID1,RELID2,b.NERVEID
+		FROM @tmpData a
+		INNER JOIN (SELECT personId,MAX(NERVEID) AS NERVEID FROM @tmpData GROUP BY PERSONID) b ON a.PERSONID=b.PERSONID
+	) AS S
+	ON T.PersonId = S.PersonId
+	WHEN MATCHED THEN UPDATE SET T.NERVEID = S.NERVEID 
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+				,CREATETIME
+				,MODIFYTIME
+				,LASTOPID
+				,LASTOPNAME
+				,FALLIN
+				,OPENNESS
+				,SLIPPERY
+				,CHECKTIME
+				,CHECKSTOCK
+				,CHECKINFO
+				,ID_IDEA
+				,ID_CONFIDENCE
+				,ID_360_CXJC
+				,ID_360_NLHYD
+				,ID_360_DKZJ
+				,ID_360_ZJJSD
+				,POWER
+				,RELID1
+				,RELID2
+				,NERVEID) 
+		VALUES(S.PERSONID
+				,S.CREATETIME
+				,S.MODIFYTIME
+				,S.LASTOPID
+				,S.LASTOPNAME
+				,S.FALLIN
+				,S.OPENNESS
+				,S.SLIPPERY
+				,S.CHECKTIME
+				,S.CHECKSTOCK
+				,S.CHECKINFO
+				,S.ID_IDEA
+				,S.ID_CONFIDENCE
+				,S.ID_360_CXJC
+				,S.ID_360_NLHYD
+				,S.ID_360_DKZJ
+				,S.ID_360_ZJJSD
+				,S.POWER
+				,S.RELID1
+				,S.RELID2
+				,S.NERVEID);  	
+  </insert>
+  
+  <select id="getEbPersonQuestionLogMaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2001-01-01' AS DATETIME)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_Question_Log]
+  </select>
+  <!-- PRIMARY KEY -->
+  <insert id="insertEbPersonQuestionLog" parameterType="Map">
+    declare @tmpData table(
+		PERSONID	INT NOT NULL,
+		OPID INT NULL,
+		OPNAME	VARCHAR(100) NULL,
+		LOGTIME	DATETIME NOT NULL,
+		OLDVALUE INT NULL,
+		NEWVALUE INT NULL,
+		BATCHID	INT NULL,
+		CLASSID	VARCHAR(100) NOT  NULL,
+		NERVEID INT NULL	
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID},${mapV.OPID},${mapV.OPNAME}
+		  	,${mapV.LOGTIME},${mapV.OLDVALUE},${mapV.NEWVALUE}
+		  	,${mapV.BATCHID},${mapV.CLASSID},${mapV.NERVEID}
+	  	)
+	  	</foreach> 
+	  	; 
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_Question_Log] AS T
+	USING (
+		select PersonId,LOGTIME,CLASSID
+		,max(OPID) as OPID,max(OPNAME) as OPNAME 
+		,max(OLDVALUE) as OLDVALUE,max(NEWVALUE) as NEWVALUE
+		,max(BATCHID) as BATCHID,max(NERVEID) as NERVEID
+		from @tmpData
+		group by PersonId,LOGTIME,CLASSID
+	)  AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME AND T.CLASSID = S.CLASSID
+	WHEN MATCHED THEN UPDATE SET T.NERVEID = S.NERVEID
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+				,OPID
+				,OPNAME
+				,LOGTIME
+				,OLDVALUE
+				,NEWVALUE
+				,BATCHID
+				,CLASSID
+				,NERVEID) 
+		VALUES(S.PERSONID
+				,S.OPID
+				,S.OPNAME
+				,S.LOGTIME
+				,S.OLDVALUE
+				,S.NEWVALUE
+				,S.BATCHID
+				,S.CLASSID
+				,S.NERVEID);  	
+  </insert>
+  <select id="getEbPersonKeeperMaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2017-01-01' AS DATETIME)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_Keeper_Log]
+  </select>
+  <insert id="insertEbPersonKeeper" parameterType="Map">
+    declare @tmpData table(
+		PERSONID	INT NOT NULL,
+		OLDKEEPERID INT NOT NULL,
+		NEWKEEPERID INT NOT NULL,
+		LOGTIME	DATETIME NOT NULL,
+		OLDKEEPERGID INT NULL,
+		NEWKEEPERGID INT NULL,
+		OPTYPE INT NULL,
+		COMMENTS	VARCHAR(6000) NULL,
+		OLDKEEPERNAME	VARCHAR(100) NULL,
+		NEWKEEPERNAME	VARCHAR(100) NULL,
+		VALID		INT NULL
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID},${mapV.OLDKEEPERID},${mapV.NEWKEEPERID}
+		  	,${mapV.LOGTIME},${mapV.OLDKEEPERGID},${mapV.NEWKEEPERGID},${mapV.OPTYPE}
+		  	,${mapV.COMMENTS},${mapV.OLDKEEPERNAME},${mapV.NEWKEEPERNAME},${mapV.VALID}
+	  	)
+	  	</foreach> 
+	  	; 
+  	</foreach> 
+  	delete from @tmpData where OLDKEEPERID=1 and NEWKEEPERID=1;
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_Keeper_Log] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME AND T.OLDKEEPERID = S.OLDKEEPERID AND T.NEWKEEPERID = S.NEWKEEPERID
+	<!-- WHEN MATCHED THEN UPDATE SET T.VELID = S.VALID  -->
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+				,OLDKEEPERID
+				,NEWKEEPERID
+				,LOGTIME
+				,OLDKEEPERGID
+				,NEWKEEPERGID
+				,OPTYPE
+				,COMMENTS
+				,OLDKEEPERNAME
+				,NEWKEEPERNAME
+				,VELID) 
+		VALUES(S.PERSONID
+				,S.OLDKEEPERID
+				,S.NEWKEEPERID
+				,S.LOGTIME
+				,S.OLDKEEPERGID
+				,S.NEWKEEPERGID
+				,S.OPTYPE
+				,S.COMMENTS
+				,S.OLDKEEPERNAME
+				,S.NEWKEEPERNAME
+				,S.VALID);  	
+  </insert>
+  
+  <select id="getEbPersonKeeper10MaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2019-01-01' AS DATETIME)) 
+  	FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10]
+  </select>
+  <insert id="insertEbPersonKeeper10" parameterType="Map">
+    declare @tmpData table(
+		PERSONID	INT NOT NULL,
+		NERVEID		INT NULL,
+		OLDKEEPERID INT NOT NULL,
+		NEWKEEPERID INT NOT NULL,
+		LOGTIME	DATETIME NOT NULL,
+		OLDKEEPERGID INT NULL,
+		NEWKEEPERGID INT NULL,		
+		COMMENTS	VARCHAR(6000) NULL,
+		OLDKEEPERNAME	VARCHAR(100) NULL,
+		NEWKEEPERNAME	VARCHAR(100) NULL,
+		VALID		INT NULL,
+		FROMWHERE  VARCHAR(100) NULL,
+		DOMAIN	VARCHAR(500) NULL,
+		FINISHTIME DATETIME NULL,
+		ORAPERSONID INT NULL 
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID},${mapV.NERVEID},${mapV.OLDKEEPERID},${mapV.NEWKEEPERID}
+		  	,${mapV.LOGTIME},${mapV.OLDKEEPERGID},${mapV.NEWKEEPERGID}
+		  	,${mapV.COMMENTS},${mapV.OLDKEEPERNAME},${mapV.NEWKEEPERNAME},${mapV.VALID}
+		  	,${mapV.FROMWHERE},${mapV.DOMAIN},${mapV.FINISHTIME},${mapV.NERVEID}
+	  	)
+	  	</foreach> 
+	  	; 
+  	</foreach> 
+  	declare @tmpDataB01 table(
+		NERVEID	INT NOT NULL,	 
+		B0 INT NULL,
+		B1 INT NULL
+	);
+  	<foreach collection="traceListB01" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpDataB01 values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID},${mapV.B0},${mapV.B1}		  	
+	  	)
+	  	</foreach> 
+	  	; 
+  	</foreach> 
+  	delete from @tmpData where OLDKEEPERID=1 and NEWKEEPERID=1;
+  	MERGE INTO [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] AS T
+	USING (
+		SELECT PERSONID,OLDKEEPERID,NEWKEEPERID,LOGTIME
+			,MAX(OLDKEEPERGID) AS OLDKEEPERGID
+			,MAX(NEWKEEPERGID) AS NEWKEEPERGID
+			,MAX(COMMENTS) AS COMMENTS
+			,MAX(OLDKEEPERNAME) AS OLDKEEPERNAME
+			,MAX(NEWKEEPERNAME) AS NEWKEEPERNAME
+			,MAX(VALID) AS VALID
+			,MAX(FROMWHERE) AS FROMWHERE
+			,MAX(DOMAIN) AS DOMAIN
+			,MAX(b.B0) as B0
+			,MAX(b.B1) as B1
+			,MAX(FinishTime) as FinishTime
+			,MAX(OraPersonId) as OraPersonId
+		FROM @tmpData a
+		LEFT JOIN @tmpDataB01 b on a.NERVEID=b.NERVEID
+		GROUP BY PERSONID,OLDKEEPERID,NEWKEEPERID,LOGTIME
+	) AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME AND T.OLDKEEPERID = S.OLDKEEPERID AND T.NEWKEEPERID = S.NEWKEEPERID
+	<!-- WHEN MATCHED THEN UPDATE SET T.VELID = S.VALID  -->
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+				,OLDKEEPERID
+				,NEWKEEPERID
+				,LOGTIME
+				,OLDKEEPERGID
+				,NEWKEEPERGID
+				,COMMENTS
+				,OLDKEEPERNAME
+				,NEWKEEPERNAME
+				,VELID
+				,FROMWHERE
+				,DOMAIN
+				,B0
+				,B1
+				,SDATE
+				,FINISHTIME
+				,OraPersonId) 
+		VALUES(S.PERSONID
+				,S.OLDKEEPERID
+				,S.NEWKEEPERID
+				,S.LOGTIME
+				,S.OLDKEEPERGID
+				,S.NEWKEEPERGID
+				,S.COMMENTS
+				,S.OLDKEEPERNAME
+				,S.NEWKEEPERNAME
+				,S.VALID
+				,S.FROMWHERE
+				,S.DOMAIN
+				,isnull(S.B0,0)
+				,isnull(S.B1,0)
+				,CAST(CONVERT(CHAR(8),S.LOGTIME,112) AS INT)
+				,S.FINISHTIME
+				,S.OraPersonId);  
+				
+		<!-- 对新号进行处理，确认是否有效 去除 callin 呼入的 -->	
+	
+		IF(OBJECT_ID('tempdb..#tmpData') IS NOT NULL)
+			DROP TABLE #tmpData
+		CREATE TABLE #tmpData(personId INT PRIMARY KEY ,logTime DATETIME )
+		INSERT INTO #tmpData
+		SELECT *
+		FROM (
+			SELECT a.personId,max(logtime) AS logTime
+			FROM BD_UserNT.[dbo].[_Eb_Person_Keeper_Log_10] a
+			WHERE a.OLDKEEPERID = 1 AND a.VELID=1
+			GROUP BY a.PERSONID 
+		) a 
+		WHERE a.logTime>=DATEADD(DAY,-1,GETDATE());
+
+		UPDATE a
+			SET a.[isValid] = 0
+		FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+		INNER JOIN #tmpData b ON a.PERSONID=b.personId
+		WHERE a.[isValid]=1	
+		
+		UPDATE a
+		    SET a.[isValid] = 1
+		FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+		INNER JOIN (
+			SELECT a.*,b.keeperId
+			FROM #tmpData a
+			INNER JOIN ( 
+				SELECT a.PERSONID,MAX(a.NEWKEEPERID) AS keeperId
+				FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+				INNER JOIN #tmpData b ON a.PERSONID=b.PERSONID AND a.OLDKEEPERID=1 AND a.LOGTIME=b.logTime AND a.VELID=1
+				GROUP BY a.PERSONID
+			) b ON a.PERSONID=b.personId 
+		) b ON a.PERSONID=b.PERSONID AND a.LOGTIME=b.LOGTIME AND a.NEWKEEPERID=b.keeperId AND a.OLDKEEPERID=1
+		WHERE a.[isValid]=0	AND ISNULL(a.DOMAIN,'')!='callin';
+			
+  </insert>
+  
+  <update id="updateEbPersonKeeper10" parameterType="Map">	  	
+		DECLARE @startDate INT,@endDate INT 
+		SELECT @startDate=CAST( CONVERT(VARCHAR,MIN(a.StartDate),112) AS INT) 
+			, @endDate = CAST(CONVERT(VARCHAR,MIN(a.EndDate),112) AS int)
+		FROM [DB_WebNerveData].dbo._Mission_Act_Info a
+		WHERE cast(CAST( ${sDate} AS VARCHAR(10)) as date) BETWEEN a.StartDate AND a.EndDate
+		
+		UPDATE a
+		SET a.AB = b.AB ,a.AB1=b.AB1
+		FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+		INNER JOIN (
+			SELECT b.*
+			FROM (
+			SELECT [PERSONID],AB,AB1
+			FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+			WHERE a.isvalid >0 AND a.sdate>=@startDate AND a.sdate&lt;=@endDate
+			) a
+			INNER JOIN (
+			SELECT a.personId
+				,MAX(CASE WHEN a.CUSTESTIMATE='B' THEN sdate ELSE 0 END) AS AB
+				,MAX(CASE WHEN a.CUSTESTIMATE='B1' THEN sdate ELSE 0 END) AS AB1
+			FROM (
+				SELECT DISTINCT b.NERVEID AS personId,b.CUSTESTIMATE,CONVERT(VARCHAR,b.LOGTIME,112) AS sdate
+				FROM BD_UsersORFromOra.dbo._Eb_Person_Presale_Log b
+				WHERE  LOGTIME >= CAST(CAST(@startDate AS VARCHAR(10)) AS DATETIME)
+					AND LOGTIME &lt; DATEADD(DAY,1,CAST(CAST(@endDate AS VARCHAR(10)) AS DATETIME))
+					AND [version]=101 AND b.CUSTESTIMATE IN ('B','B1')
+			) a 
+			GROUP BY a.personId
+			) b ON a.personId=b.PERSONID
+			WHERE a.ab!=b.ab OR a.ab1!=b.ab1
+		) b
+		ON a.personId=b.PERSONID
+  </update>
+  
+  <update id="updateEbPersonKeeperBandB1" parameterType="Map">
+    IF(OBJECT_ID('tempdb..#sourceClass') IS  NOT NULL )
+		DROP TABLE #sourceClass
+	CREATE TABLE #sourceClass(personId INT,sourceId INT,fromWhere INT ,PRIMARY KEY (personId))
+	
+	DECLARE @curDate INT = CONVERT(VARCHAR,GETDATE(),112)
+	IF( DATEPART(hh,GETDATE())&lt;8 )
+	BEGIN
+		SET @curDate = CONVERT(VARCHAR,DATEADD(DAY,-1,GETDATE()),112)
+	END 
+	
+	DECLARE @startDate INT = CONVERT(VARCHAR,GETDATE(),112)
+	DECLARE @endDate INT 
+	DECLARE @actId INT = 105
+	
+	SELECT   @actId = MIN(actId) FROM [DB_WebNerveData].[dbo].[_Mission_Act_Info] 
+	WHERE  actType=1 and CAST(GETDATE() AS DATE) BETWEEN startdate AND EndDate 
+	AND actId IN(SELECT DISTINCT actid FROM DB_CompanyData.dbo._NewBieUserSource)
+	
+	SELECT @startDate = CONVERT(VARCHAR,MIN(a.StartDate),112),@actId = MIN(actId),@endDate=CONVERT(VARCHAR,MIN(a.EndDate),112)
+	FROM [DB_WebNerveData].[dbo].[_Mission_Act_Info] a
+	WHERE a.StartDate&lt;=CAST(@startDate AS VARCHAR(10)) AND a.EndDate>=CAST(@startDate AS VARCHAR(10))
+	AND a.ActId = @actId
+	
+	IF(@curDate>@endDate) SET @curDate = @endDate
+	
+	INSERT INTO #sourceClass
+	SELECT DISTINCT a.PERSONID,3 AS sourceId,CASE  UPPER(ISNULL(FromWhere,'')) WHEN 'WAP' THEN 2 WHEN 'PC' THEN 1  ELSE 0 END  AS fromWhere
+	FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a 
+	WHERE a.isValid=1 AND a.SDATE>=@startDate
+	
+	INSERT INTO #sourceClass
+	SELECT a.Personid,MAX(a.SourceId) AS sourceId,MAX(a.fromWhere) AS fromWhere
+	FROM(
+		SELECT a.Personid,a.SourceId,CASE  UPPER(ISNULL(c.[TYPE],'')) WHEN 'WAP' THEN 2 WHEN 'PC' THEN 1  ELSE 0 END  AS fromWhere
+		FROM DB_CompanyData.dbo._NewBieUserSource a
+		INNER JOIN [BD_UsersORFromOra].[dbo].[_Eb_mobile_reg_log] b ON b.NerveId = a.personId
+		LEFT JOIN [BD_UsersORFromOra].[dbo].[Tv_AgentName2Domain] c ON c.domain = b.domain
+		LEFT JOIN #sourceClass d ON a.Personid=d.personId
+		WHERE a.Actid=@actId AND d.personId IS NULL  AND a.SourceId!=3 
+	) a
+	GROUP BY a.Personid
+	
+	IF(OBJECT_ID('tempdb..#keeperBx') IS  NOT NULL )
+		DROP TABLE #keeperBx
+	
+	SELECT @actId AS actId, @curDate AS startDate, a.KEEPERID
+		,ISNULL(b.sourceId,99) AS sourceId, ISNULL(b.fromWhere,0) AS fromWhere
+		,COUNT(CASE WHEN a.CUSTESTIMATE='B' THEN a.NERVEID END ) AS BCount
+		,COUNT(CASE WHEN a.CUSTESTIMATE='B1' THEN a.NERVEID END ) AS B1Count
+	INTO #keeperBx
+	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_Presale_Log]  a
+	LEFT JOIN #sourceClass b ON a.NERVEID=b.personId
+	WHERE a.[version]=101 AND a.CUSTESTIMATE IN('B','B1')
+	 and a.LOGTIME>=CAST(@curDate AS VARCHAR(10)) AND a.LOGTIME&lt;DATEADD(DAY,1,CAST(@curDate AS VARCHAR(10)))
+	GROUP BY a.KEEPERID,b.sourceId,b.fromWhere
+	
+	DELETE FROM [BD_UserNT].dbo._Eb_Person_Presal_B_B1 WHERE sdate = @curDate
+	INSERT INTO [BD_UserNT].dbo._Eb_Person_Presal_B_B1
+	SELECT * FROM #keeperBx
+	
+  </update>
+  
+  <select id="queryNewPersonKeeper" parameterType="Map" resultType="Map">
+	SELECT [PERSONID] AS personId   
+		,a.NEWKEEPERID AS KeeperId
+		,CAST(FORMAT([LOGTIME],'yyyyMMddHHmmss') AS BIGINT) AS traceTime
+	FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+	WHERE a.isvalid >0 		
+		and cast(convert(char(8),a.LOGTIME,112) as int) >=#{sDate,jdbcType=INTEGER}
+	<if test="seDate!=null">
+		and cast(convert(char(8),a.LOGTIME,112) as int) &lt;=#{seDate,jdbcType=INTEGER}
+	</if>
+	Order By a.LOGTIME
+  </select>
+  
+  <select id="getEbPersonUnLockLogMaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2017-02-20' AS DATETIME)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Ep_Person_Op_Log]
+  </select>
+  <insert id="insertEbPersonUnLockLog" parameterType="Map">
+    declare @tmpData table(
+		PERSONID	INT NOT NULL,
+		NERVEID		INT NOT NULL,
+		LOGTIME	DATETIME NOT NULL,
+		OPID	 INT NULL,
+		VALID	 INT NULL,
+		PARA3	 VARCHAR(5000) NULL,
+		OPNAME	 VARCHAR(150) NULL,
+		COMMENTS VARCHAR(5000) NULL
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID},${mapV.NERVEID},${mapV.LOGTIME}
+		  	,${mapV.OPID},${mapV.VALID}
+		  	,${mapV.PARA3},${mapV.OPNAME},${mapV.COMMENTS}
+	  	)
+	  	</foreach> 
+	  	; 
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Ep_Person_Op_Log] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+				,NERVEID
+				,LOGTIME
+				,opid
+				,para3
+				,opname
+				,COMMENTS) 
+		VALUES(S.PERSONID
+				,S.NERVEID
+				,S.LOGTIME
+				,S.opid
+				,S.para3
+				,S.opname
+				,S.COMMENTS);  	
+  </insert>
+
+  <insert id="insertEbPersonPresaleLog" parameterType="Map">
+    declare @tmpData table(
+		KEEPERID INT NOT NULL,
+		NERVEID INT NOT NULL,
+		LOGTIME DATETIME NOT NULL,
+		CUSTESTIMATE VARCHAR(50) NOT NULL,
+		PREALLOCGID INT NULL,
+		BOUGHT INT NULL,
+		A0 INT NULL,
+		VERSION INT NULL
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.KEEPERID},${mapV.NERVEID},${mapV.LOGTIME}
+		  	,${mapV.CUSTESTIMATE},${mapV.PREALLOCGID},${mapV.BOUGHT}
+		  	,${mapV.A0},${mapV.VERSION}
+	  	)
+	  	</foreach> 
+	  	; 
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_Presale_Log] AS T
+	USING (select distinct * from @tmpData ) AS S
+	ON T.KEEPERID=S.KEEPERID AND T.NERVEID = S.NERVEID 
+		AND T.LOGTIME = S.LOGTIME AND T.CUSTESTIMATE=S.CUSTESTIMATE AND T.VERSION = S.VERSION		
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN 
+		INSERT (KEEPERID
+				,NERVEID
+				,LOGTIME
+				,CUSTESTIMATE
+				,PREALLOCGID
+				,BOUGHT
+				,A0
+				,VERSION) 
+		VALUES(S.KEEPERID
+				,S.NERVEID
+				,S.LOGTIME
+				,S.CUSTESTIMATE
+				,S.PREALLOCGID
+				,S.BOUGHT
+				,S.A0
+				,S.VERSION);  	
+  </insert>
+  
+  <delete id="deleteEbMobileRegLog" parameterType="Map">
+ 	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	UPDATE [BD_UsersORFromOra].[dbo].[_EB_MOBILE_REG_LOG]
+	  	SET ModifyTime=GETDATE(),Status = 2
+	  	WHERE PERSONID in (${qList})
+	</foreach>
+  </delete>
+  <insert id="insertEbMobileRegLogMore" parameterType="Map">  
+	declare @tmpData table(
+  	   	  PERSONID INT NOT NULL, 
+          NERVEID  INT NOT NULL,
+          KEEPERID INT NOT NULL,
+          CUSTESTACT1 VARCHAR(20) NOT NULL,
+          CREATETIME DATETIME NOT NULL,
+          FINISHTIME DATETIME NULL,
+          FIRSTALLOCTIME DATETIME NULL,
+          A0 INT NULL,
+          BPLUS INT NULL,
+          B0 INT NULL,
+          B1 INT NULL,
+          B2 INT NULL,
+          B3 INT NULL,
+          PREALLOCGID INT NULL, 
+          PRESALETYPE INT NULL,
+          [TYPE] INT NULL,
+          BOUGHT INT NULL,
+          KEEPERGID INT NULL,
+          FROMWHERE VARCHAR(600) NULL,
+          DOMAIN VARCHAR(150) NULL
+  	);
+  
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID},${mapV.NERVEID},${mapV.KEEPERID}
+		  	,${mapV.CUSTESTACT1},${mapV.CREATETIME},${mapV.FINISHTIME}
+		  	,${mapV.FIRSTALLOCTIME},${mapV.A0},${mapV.BPLUS}
+		  	,${mapV.B0},${mapV.B1},${mapV.B2}
+		  	,${mapV.B3},${mapV.PREALLOCGID},${mapV.PRESALETYPE}
+		  	,${mapV.TYPE},${mapV.BOUGHT},${mapV.KEEPERGID}
+		  	,${mapV.FROMWHERE},${mapV.DOMAIN}
+	  	)
+	  	</foreach>
+  	</foreach>
+
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_EB_MOBILE_REG_LOG] AS T
+	USING @tmpData AS S
+	ON T.PERSONID=S.PERSONID
+	WHEN MATCHED THEN UPDATE SET T.NERVEID = S.NERVEID
+		,T.KEEPERID = S.KEEPERID
+		,T.CUSTESTACT1 = S.CUSTESTACT1
+		,T.CREATETIME = S.CREATETIME
+		,T.FINISHTIME = S.FINISHTIME
+		,T.FIRSTALLOCTIME = S.FIRSTALLOCTIME
+		,T.A0 = S.A0
+		,T.BPLUS = S.BPLUS
+		,T.B0 = S.B0
+		,T.B1 = S.B1
+		,T.B2 = S.B2
+		,T.B3 = S.B3
+		,T.PREALLOCGID = S.PREALLOCGID
+		,T.PRESALETYPE = S.PRESALETYPE
+		,T.TYPE = S.TYPE
+		,T.BOUGHT = S.BOUGHT
+		,T.KEEPERGID = S.KEEPERGID
+		,T.FROMWHERE = S.FROMWHERE
+		,T.DOMAIN = S.DOMAIN
+		,T.STATUS = 2
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID, 
+           NERVEID  ,
+           KEEPERID ,
+           CUSTESTACT1 ,
+           CREATETIME,
+           FINISHTIME,
+           FIRSTALLOCTIME,
+           A0,
+           BPLUS,
+           B0,
+           B1,
+           B2,
+           B3,
+           PREALLOCGID , 
+           PRESALETYPE,
+           [TYPE],
+           BOUGHT,
+           KEEPERGID,
+           FROMWHERE,
+           DOMAIN,
+           STATUS) 
+		VALUES(S.PERSONID, 
+           S.NERVEID  ,
+           S.KEEPERID ,
+           S.CUSTESTACT1 ,
+           S.CREATETIME,
+           S.FINISHTIME,
+           S.FIRSTALLOCTIME,
+           S.A0,
+           S.BPLUS,
+           S.B0,
+           S.B1,
+           S.B2,
+           S.B3,
+           S.PREALLOCGID , 
+           S.PRESALETYPE,
+           S.[TYPE],
+           S.BOUGHT,
+           S.KEEPERGID,
+           S.FROMWHERE,
+           S.DOMAIN,
+           0);   	 
+  </insert>
+  
+  <update id="updateEbMobileRegLog" parameterType="Map">  
+	declare @tmpData table(
+  	   	  PERSONID INT NOT NULL, 
+          NERVEID  INT NOT NULL,
+          KEEPERID INT NOT NULL,
+          CUSTESTACT1 VARCHAR(20) NOT NULL,
+          CREATETIME DATETIME NOT NULL,
+          FINISHTIME DATETIME NULL,
+          FIRSTALLOCTIME DATETIME NULL,
+          A0 INT NULL,
+          BPLUS INT NULL,
+          B0 INT NULL,
+          B1 INT NULL,
+          B2 INT NULL,
+          B3 INT NULL,
+          PREALLOCGID INT NULL, 
+          PRESALETYPE INT NULL,
+          [TYPE] INT NULL,
+          BOUGHT INT NULL,
+          KEEPERGID INT NULL,
+          FROMWHERE VARCHAR(600) NULL,
+          DOMAIN VARCHAR(150) NULL
+  	);
+  
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values ${qList}
+  	</foreach>
+
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_EB_MOBILE_REG_LOG] AS T
+	USING @tmpData AS S
+	ON T.PERSONID=S.PERSONID
+	WHEN MATCHED THEN UPDATE SET T.NERVEID = S.NERVEID
+		,T.KEEPERID = S.KEEPERID
+		,T.CUSTESTACT1 = S.CUSTESTACT1
+		,T.CREATETIME = S.CREATETIME
+		,T.FINISHTIME = S.FINISHTIME
+		,T.FIRSTALLOCTIME = S.FIRSTALLOCTIME
+		,T.A0 = S.A0
+		,T.BPLUS = S.BPLUS
+		,T.B0 = S.B0
+		,T.B1 = S.B1
+		,T.B2 = S.B2
+		,T.B3 = S.B3
+		,T.PREALLOCGID = S.PREALLOCGID
+		,T.PRESALETYPE = S.PRESALETYPE
+		,T.TYPE = S.TYPE
+		,T.BOUGHT = S.BOUGHT
+		,T.KEEPERGID = S.KEEPERGID
+		,T.FROMWHERE = S.FROMWHERE
+		,T.DOMAIN = S.DOMAIN
+		,T.ModifyTime=GETDATE()
+		,T.Status = 1
+	;
+  </update>
+  
+  <insert id="insertEbMobileRegLog" parameterType="Map">   
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into [BD_UsersORFromOra].[dbo].[_EB_MOBILE_REG_LOG](
+	  	   PERSONID, 
+           NERVEID  ,
+           KEEPERID ,
+           CUSTESTACT1 ,
+           CREATETIME,
+           FINISHTIME,
+           FIRSTALLOCTIME,
+           A0,
+           BPLUS,
+           B0,
+           B1,
+           B2,
+           B3,
+           PREALLOCGID , 
+           PRESALETYPE,
+           [TYPE],
+           BOUGHT,
+           KEEPERGID,
+           FROMWHERE,
+           DOMAIN,
+           STATUS
+	  	) values 
+		  	${qList}	  		  	 
+  	</foreach>
+  </insert>
+  <select id="queryEbMobileRegLog" parameterType="Map" resultType="Map">
+  	select PERSONID, 
+           NERVEID  ,
+           KEEPERID ,
+           CUSTESTACT1 ,
+           CREATETIME,
+           FINISHTIME,
+           FIRSTALLOCTIME,
+           A0,
+           BPLUS,
+           B0,
+           B1,
+           B2,
+           B3,
+           PREALLOCGID , 
+           PRESALETYPE,
+           [TYPE],
+           BOUGHT,
+           KEEPERGID,
+           FROMWHERE,
+           DOMAIN, 
+           STATUS
+    from [BD_UsersORFromOra].[dbo].[_EB_MOBILE_REG_LOG] a
+    where PERSONID>=#{sPersonId,jdbcType=INTEGER}
+    	and PERSONID&lt;=#{ePersonId,jdbcType=INTEGER}
+    order by PERSONID
+  </select> 
+  
+  <delete id="deleteEbFlashMaturevalue" parameterType="Map">
+  	delete from [BD_UsersORFromOra].[dbo].[_Eb_Flash_Maturevalue] where NDATE=#{sDate,jdbcType=INTEGER};
+  </delete>
+  <insert id="insertEbFlashMaturevalue" parameterType="Map">
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into [BD_UsersORFromOra].[dbo].[_Eb_Flash_Maturevalue](PERSONID
+				,NID
+				,LOGINDAYS
+				,NEWSARTICLECNT
+				,ROOMDAYS
+				,CALLINCNT
+				,MODIFYTIME
+				,NDATE) values ${qList}
+  	</foreach>
+  </insert>
+  
+  <insert id="insertAgentName2Domain" parameterType="Map">
+  	delete from [BD_UsersORFromOra].[dbo].[Tv_AgentName2Domain];
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into [BD_UsersORFromOra].[dbo].[Tv_AgentName2Domain](
+	  			KEYWORD,DOMAIN,MATCHLEVEL
+		      ,ADDPERSON,ADDTIME,MODIFYPERSON
+		      ,MODIFYTIME,TYPE) values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.KEYWORD},${mapV.DOMAIN},${mapV.MATCHLEVEL}
+		  	,${mapV.ADDPERSON},${mapV.ADDTIME},${mapV.MODIFYPERSON}
+		  	,${mapV.MODIFYTIME},${mapV.TYPE}
+	  	)
+	  	</foreach>
+  	</foreach>
+  </insert>
+  
+ <delete id="deleteUsersLogin" parameterType="Map">
+	 delete from BD_UserNT.dbo._Compass_UserLogin_HourSlice_LatestThirtyDays 
+	 where Sdate=#{sDate} 
+ </delete>
+ <insert id="insertUsersLogin" parameterType="Map"> 	
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into BD_UserNT.dbo._Compass_UserLogin_HourSlice_LatestThirtyDays
+           ([Sdate]
+           ,[PersonId]
+           ,[SLogin]
+           ,[OnLineSpan]) VALUES
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.LoginDate},${mapV.PersonId},${mapV.LoginHour},${mapV.totalTimes}
+	  	)
+	  	</foreach>  
+  	</foreach>   	
+ </insert> 
+ 
+ 
+  <parameterMap type="Map" id="proIndexCourse">
+  <parameter property="Sdate" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/> 
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  </parameterMap>
+  <update id="updateUsersCourseAllDate" parameterMap="proIndexCourse" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersCourseAllDate_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourseInsureDate" parameterMap="proIndexCourse" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersInsureCourseDate_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourse360Date" parameterMap="proIndexCourse" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersCourse360Date_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourse3600Date" parameterMap="proIndexCourse" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_UsersCourseDate_Update(?, ?)}
+  </update>
+  <update id="updateUsersCourse18000Date" parameterMap="proIndexCourse" statementType="CALLABLE" >  
+  {call BD_Users.dbo.P_Users18000CourseDate_Update(?, ?)}
+  </update>
+  
+  
+  
+  <insert id="insertEbSalesRelTelallocStat" parameterType="Map">  
+	declare @tmpData table(
+  	   	  	USERID	INT,
+			GROUPID	INT,
+			CNAME	VARCHAR(1000),
+			STATDATE	DATE,
+			CALLOUT	INT,
+			CALLIN	INT,
+			CALLTV	INT,
+			TOTAL	INT,
+			CALLOUTRCV	INT,
+			CALLINRCV	INT,
+			CALLTVRCV	INT,
+			CALLOUTGIV	INT,
+			CALLINGIV	INT,
+			CALLTVGIV	INT,
+			RCV	INT,
+			GIV	INT,
+			NETCALLOUT	INT,
+			NETCALLIN	INT,
+			NETCALLTV	INT,
+			NETTOTAL	INT,
+			CALLOUTCOST	INT,
+			CALLINCOST	INT,
+			CALLTVCOST	INT,
+			TOTALCOST	INT,
+			CALLOUTRCVCOST	INT,
+			CALLINRCVCOST	INT,
+			CALLTVRCVCOST	INT,
+			CALLOUTGIVCOST	INT,
+			CALLINGIVCOST	INT,
+			CALLTVGIVCOST	INT,
+			RCVCOST	INT,
+			GIVCOST	INT,
+			NETCALLOUTCOST	INT,
+			NETCALLINCOST	INT,
+			NETCALLTVCOST	INT,
+			NETTOTALCOST	INT,
+			TOPGID	INT,
+			ALLOCRETURN	INT,
+			ALLOCVICE	INT,
+			ALLOCRECALL	INT
+  	);
+  
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.USERID},${mapV.GROUPID},${mapV.CNAME}
+			,${mapV.STATDATE},${mapV.CALLOUT},${mapV.CALLIN}
+			,${mapV.CALLTV},${mapV.TOTAL},${mapV.CALLOUTRCV}
+			,${mapV.CALLINRCV},${mapV.CALLTVRCV},${mapV.CALLOUTGIV}
+			,${mapV.CALLINGIV},${mapV.CALLTVGIV},${mapV.RCV},${mapV.GIV}
+			,${mapV.NETCALLOUT},${mapV.NETCALLIN},${mapV.NETCALLTV}
+			,${mapV.NETTOTAL},${mapV.CALLOUTCOST},${mapV.CALLINCOST}
+			,${mapV.CALLTVCOST},${mapV.TOTALCOST},${mapV.CALLOUTRCVCOST}
+			,${mapV.CALLINRCVCOST},${mapV.CALLTVRCVCOST},${mapV.CALLOUTGIVCOST}
+			,${mapV.CALLINGIVCOST},${mapV.CALLTVGIVCOST},${mapV.RCVCOST}
+			,${mapV.GIVCOST},${mapV.NETCALLOUTCOST},${mapV.NETCALLINCOST}
+			,${mapV.NETCALLTVCOST},${mapV.NETTOTALCOST},${mapV.TOPGID}
+			,${mapV.ALLOCRETURN},${mapV.ALLOCVICE},${mapV.ALLOCRECALL}
+	  	)
+	  	</foreach>
+  	</foreach>
+
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_EB_SALES_REL_TELALLOC_STAT] AS T
+	USING @tmpData AS S
+	ON T.USERID=S.USERID AND T.STATDATE=S.STATDATE AND T.GROUPID=S.GROUPID
+	WHEN MATCHED THEN UPDATE 
+	SET T.CNAME=S.CNAME,
+		T.CALLOUT=S.CALLOUT,
+		T.CALLIN=S.CALLIN,
+		T.CALLTV=S.CALLTV,
+		T.TOTAL=S.TOTAL,
+		T.CALLOUTRCV=S.CALLOUTRCV,
+		T.CALLINRCV=S.CALLINRCV,
+		T.CALLTVRCV=S.CALLTVRCV,
+		T.CALLOUTGIV=S.CALLOUTGIV,
+		T.CALLINGIV=S.CALLINGIV,
+		T.CALLTVGIV=S.CALLTVGIV,
+		T.RCV=S.RCV,
+		T.GIV=S.GIV,
+		T.NETCALLOUT=S.NETCALLOUT,
+		T.NETCALLIN=S.NETCALLIN,
+		T.NETCALLTV=S.NETCALLTV,
+		T.NETTOTAL=S.NETTOTAL,
+		T.CALLOUTCOST=S.CALLOUTCOST,
+		T.CALLINCOST=S.CALLINCOST,
+		T.CALLTVCOST=S.CALLTVCOST,
+		T.TOTALCOST=S.TOTALCOST,
+		T.CALLOUTRCVCOST=S.CALLOUTRCVCOST,
+		T.CALLINRCVCOST=S.CALLINRCVCOST,
+		T.CALLTVRCVCOST=S.CALLTVRCVCOST,
+		T.CALLOUTGIVCOST=S.CALLOUTGIVCOST,
+		T.CALLINGIVCOST=S.CALLINGIVCOST,
+		T.CALLTVGIVCOST=S.CALLTVGIVCOST,
+		T.RCVCOST=S.RCVCOST,
+		T.GIVCOST=S.GIVCOST,
+		T.NETCALLOUTCOST=S.NETCALLOUTCOST,
+		T.NETCALLINCOST=S.NETCALLINCOST,
+		T.NETCALLTVCOST=S.NETCALLTVCOST,
+		T.NETTOTALCOST=S.NETTOTALCOST,
+		T.TOPGID=S.TOPGID,
+		T.ALLOCRETURN=S.ALLOCRETURN,
+		T.ALLOCVICE=S.ALLOCVICE,
+		T.ALLOCRECALL=S.ALLOCRECALL
+	WHEN NOT MATCHED THEN 
+		INSERT (USERID,
+				GROUPID,
+				CNAME,
+				STATDATE,
+				CALLOUT,
+				CALLIN,
+				CALLTV,
+				TOTAL,
+				CALLOUTRCV,
+				CALLINRCV,
+				CALLTVRCV,
+				CALLOUTGIV,
+				CALLINGIV,
+				CALLTVGIV,
+				RCV,
+				GIV,
+				NETCALLOUT,
+				NETCALLIN,
+				NETCALLTV,
+				NETTOTAL,
+				CALLOUTCOST,
+				CALLINCOST,
+				CALLTVCOST,
+				TOTALCOST,
+				CALLOUTRCVCOST,
+				CALLINRCVCOST,
+				CALLTVRCVCOST,
+				CALLOUTGIVCOST,
+				CALLINGIVCOST,
+				CALLTVGIVCOST,
+				RCVCOST,
+				GIVCOST,
+				NETCALLOUTCOST,
+				NETCALLINCOST,
+				NETCALLTVCOST,
+				NETTOTALCOST,
+				TOPGID,
+				ALLOCRETURN,
+				ALLOCVICE,
+				ALLOCRECALL) 
+		VALUES(
+				S.USERID,
+				S.GROUPID,
+				S.CNAME,
+				S.STATDATE,
+				S.CALLOUT,
+				S.CALLIN,
+				S.CALLTV,
+				S.TOTAL,
+				S.CALLOUTRCV,
+				S.CALLINRCV,
+				S.CALLTVRCV,
+				S.CALLOUTGIV,
+				S.CALLINGIV,
+				S.CALLTVGIV,
+				S.RCV,
+				S.GIV,
+				S.NETCALLOUT,
+				S.NETCALLIN,
+				S.NETCALLTV,
+				S.NETTOTAL,
+				S.CALLOUTCOST,
+				S.CALLINCOST,
+				S.CALLTVCOST,
+				S.TOTALCOST,
+				S.CALLOUTRCVCOST,
+				S.CALLINRCVCOST,
+				S.CALLTVRCVCOST,
+				S.CALLOUTGIVCOST,
+				S.CALLINGIVCOST,
+				S.CALLTVGIVCOST,
+				S.RCVCOST,
+				S.GIVCOST,
+				S.NETCALLOUTCOST,
+				S.NETCALLINCOST,
+				S.NETCALLTVCOST,
+				S.NETTOTALCOST,
+				S.TOPGID,
+				S.ALLOCRETURN,
+				S.ALLOCVICE,
+				S.ALLOCRECALL
+		);   	 
+  </insert>
+  
+  <select id="getEbRelPersonNerveMaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(CREATETIME),CAST('2019-03-01' AS DATETIME)) 
+  	FROM [BD_UsersORFromOra].[dbo].[EB_REL_PERSON_NERVE]
+  </select>
+  <insert id="insertEbRelPersonNerve" parameterType="Map">  
+	declare @tmpData table(
+  	   	  [VALID] INT NULL
+	      ,[PERSONID] INT NULL
+	      ,[NERVEID] INT NULL
+	      ,[CREATETIME] DATETIME NULL
+	      ,[MODIFYTIME] DATETIME NULL
+	      ,[TEMPID] VARCHAR(50) NULL
+  	);
+  
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.VALID},${mapV.PERSONID},${mapV.NERVEID}
+			,${mapV.CREATETIME},${mapV.MODIFYTIME},${mapV.TEMPID}
+	  	)
+	  	</foreach>
+  	</foreach>
+
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[EB_REL_PERSON_NERVE] AS T
+	USING @tmpData AS S
+	ON T.PERSONID=S.PERSONID AND T.NERVEID=S.NERVEID AND T.CREATETIME=S.CREATETIME AND T.MODIFYTIME=S.MODIFYTIME	
+	WHEN NOT MATCHED THEN 
+		INSERT (VALID,
+				PERSONID,
+				NERVEID,
+				CREATETIME,
+				MODIFYTIME,
+				TEMPID) 
+		VALUES(
+				S.VALID,
+				S.PERSONID,
+				S.NERVEID,
+				S.CREATETIME,
+				S.MODIFYTIME,
+				S.TEMPID
+		);   	 
+  </insert>
+ 
+</mapper>

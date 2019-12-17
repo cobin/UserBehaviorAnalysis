@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	">
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location" value="config/database.properties" />
+	</bean>	
+	
+	<bean id="myDataSource91" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias91}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username91},password=${jdbc.password91}</value></property>
+        <property name="user" value="${jdbc.username91}"/>
+        <property name="password" value="${jdbc.password91}"/>
+        <property name="driver" value="${jdbc.driverClassName91}"/>
+        <property name="driverUrl" value="${jdbc.url91}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query91}"></property>  
+	</bean>
+
+	<bean id="sqlSessionFactory91" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource91" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+		<!-- <property name="configLocation" value=""/> -->
+		<!--
+			该属性用来指定MyBatis的XML配置文件路径,跟Spring整合时，编写MyBatis映射文件的目的无非是配置一下typeAlias、setting之类的
+			元素。不用在其中指定数据源，或者事务处理方式。就算配置了也会被忽略。因为这些都是使用Spring中的配置
+			。当然如果你不打算添加typeAlias 之类的设置的话，你连MyBatis的配置文件都不用写，更不用配置这个属性了
+		-->
+		<!-- 
+		<property name="mapperLocations" value="src/UserMapper.xml"/>	 
+		<property name="mapperLocations" value="classpath:/com/behavior/resources/CallTask91Mapper.xml"/>
+		
+		<property name="mapperLocations">
+			<array>
+			 	<value>classpath:/com/behavior/mapper91/*.xml</value>   
+			</array>    
+		</property>
+		 --> 
+		<!-- 该配置文件用来指定Mapper映射文件的位置 ，如果映射文件与相应的接口同名，且在同一路径下，那么可以不配置该选项-->
+	</bean>
+
+	<!--
+		注册Mapper方式一 
+	-->
+	<!--  
+	<bean id="userMapper91" class="org.mybatis.spring.mapper.MapperFactoryBean"> 
+		<property name="mapperInterface" value="com.behavior.mapper.CallTask91Mapper"/> 
+		<property name="sqlSessionFactory" ref="sqlSessionFactory91"/> 
+	</bean>	
+	-->
+	<!-- 注册Mapper方式二：也可不指定特定mapper，而使用自动扫描包的方式来注册各种Mapper ，配置如下：-->
+	  
+	<bean id="scannerConfigurer91" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory91"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper91" />		
+	</bean>
+	 
+	<!-- 事务  -->   
+	<bean id="transactionManager91"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource91" /> 
+		<!-- <qualifier value="isap" />   -->
+	</bean>
+	<!-- 全注解方式   需加上@Transactional -->  
+	<!--  
+    <tx:annotation-driven transaction-manager="transactionManager" />  
+    --> 
+    <!-- 事务控制的业务方法配 -->  
+    <!--    
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">  
+        <tx:attributes>  
+            <tx:method name="get*" read-only="true" />  
+            <tx:method name="page*" read-only="true" />  
+            <tx:method name="list*" read-only="true" />  
+            <tx:method name="*" />  
+        </tx:attributes>  
+    </tx:advice>  
+    -->  
+    <!-- 事务控制拦截 -->  
+    <!--    
+    <aop:config proxy-target-class="true">  
+        <aop:advisor pointcut="execution(* org.zhuc..*.service..*Service.*(..))"  
+            advice-ref="txAdvice" />  
+    </aop:config>  
+    -->  
+    
+    <!-- 76数据库配置 -->
+   	<bean id="myDataSource76" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias76}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username76},password=${jdbc.password76}</value></property>
+        <property name="user" value="${jdbc.username76}"/>
+        <property name="password" value="${jdbc.password76}"/>
+        <property name="driver" value="${jdbc.driverClassName76}"/>
+        <property name="driverUrl" value="${jdbc.url76}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query76}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory76" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource76" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer76" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory76"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper76" />		
+	</bean> 
+	<bean id="transactionManager76"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource76" /> 
+	</bean>
+	
+	<!-- 45服务器配置 -->
+
+	<bean id="myDataSource45" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias45}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username45},password=${jdbc.password45}</value></property>
+        <property name="user" value="${jdbc.username45}"/>
+        <property name="password" value="${jdbc.password45}"/>
+        <property name="driver" value="${jdbc.driverClassName45}"/>
+        <property name="driverUrl" value="${jdbc.url45}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query45}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory45" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource45" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer45" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory45"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper45" />		
+	</bean> 
+	<bean id="transactionManager45"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource45" /> 
+	</bean>
+
+	<!-- 111服务器配置 -->
+	 
+	<bean id="myDataSource111" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias111}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username111},password=${jdbc.password111}</value></property>
+        <property name="user" value="${jdbc.username111}"/>
+        <property name="password" value="${jdbc.password111}"/>
+        <property name="driver" value="${jdbc.driverClassName111}"/>
+        <property name="driverUrl" value="${jdbc.url111}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query111}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory111" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource111" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer111" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory111"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper111" />		
+	</bean> 
+	<bean id="transactionManager111"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource111" />
+	</bean>
+	<!-- 111服务器配置 -->
+	 
+	<bean id="myDataSource1110" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias1110}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username1110},password=${jdbc.password1110}</value></property>
+        <property name="user" value="${jdbc.username1110}"/>
+        <property name="password" value="${jdbc.password1110}"/>
+        <property name="driver" value="${jdbc.driverClassName1110}"/>
+        <property name="driverUrl" value="${jdbc.url1110}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query1110}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory1110" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource1110" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer1110" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory1110"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper1110" />		
+	</bean> 
+	<bean id="transactionManager1110"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource1110" />
+	</bean>
+	
+	<!-- 111服务器配置 -->
+	 
+	<bean id="myDataSource1111" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias1111}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username1111},password=${jdbc.password1111}</value></property>
+        <property name="user" value="${jdbc.username1111}"/>
+        <property name="password" value="${jdbc.password1111}"/>
+        <property name="driver" value="${jdbc.driverClassName1111}"/>
+        <property name="driverUrl" value="${jdbc.url1111}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query1111}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory1111" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource1111" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer1111" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory1111"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper1111" />		
+	</bean> 
+	<bean id="transactionManager1111"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource1111" />
+	</bean>
+	
+	
+		<!-- 111服务器配置 -->
+	 
+	<bean id="myDataSource1112" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias1112}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username1112},password=${jdbc.password1112}</value></property>
+        <property name="user" value="${jdbc.username1112}"/>
+        <property name="password" value="${jdbc.password1112}"/>
+        <property name="driver" value="${jdbc.driverClassName1112}"/>
+        <property name="driverUrl" value="${jdbc.url1112}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query1112}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory1112" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource1112" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer1112" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory1112"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper1112" />		
+	</bean> 
+	<bean id="transactionManager1112"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource1112" />
+	</bean>
+	
+	<!-- 69 Oracle服务器配置 -->
+	 
+	<bean id="myDataSource69" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias69}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username69},password=${jdbc.password69}</value></property>
+        <property name="user" value="${jdbc.username69}"/>
+        <property name="password" value="${jdbc.password69}"/>
+        <property name="driver" value="${jdbc.driverClassName69}"/>
+        <property name="driverUrl" value="${jdbc.url69}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query69}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory69" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource69" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer69" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory69"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper69" />		
+	</bean> 
+	<bean id="transactionManager69"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource69" />
+	</bean>
+
+	<!-- 9101 Oracle服务器配置 -->
+	 
+	<bean id="myDataSource9101" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias9101}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username9101},password=${jdbc.password9101}</value></property>
+        <property name="user" value="${jdbc.username9101}"/>
+        <property name="password" value="${jdbc.password9101}"/>
+        <property name="driver" value="${jdbc.driverClassName9101}"/>
+        <property name="driverUrl" value="${jdbc.url9101}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query9101}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory9101" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource9101" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer9101" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory9101"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper9101" />		
+	</bean> 
+	<bean id="transactionManager9101"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource9101" />
+	</bean>
+		
+	<!-- 9102 Oracle服务器配置 -->
+	 
+	<bean id="myDataSource9102" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias9102}"></property>
+        <property name="delegateProperties"><value>user=${jdbc.username9102},password=${jdbc.password9102}</value></property>
+        <property name="user" value="${jdbc.username9102}"/>
+        <property name="password" value="${jdbc.password9102}"/>
+        <property name="driver" value="${jdbc.driverClassName9102}"/>
+        <property name="driverUrl" value="${jdbc.url9102}"/>
+        <property name="houseKeepingTestSql" value="${jdbc.query9102}"></property>  
+	</bean>
+	<bean id="sqlSessionFactory9102" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource9102" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean> 
+	<bean id="scannerConfigurer9102" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory9102"/> 
+		<property name="basePackage" value="com.behavior.mapper.mapper9102" />		
+	</bean> 
+	<bean id="transactionManager9102"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource9102" />
+	</bean>
+</beans>

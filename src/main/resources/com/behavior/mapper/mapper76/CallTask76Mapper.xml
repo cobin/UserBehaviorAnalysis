@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper76.CallTask76Mapper" > 
+  <select id="queryLogin" parameterType="Map" resultType="Map">
+  	declare @tmpData table(personId int,traceDate int,traceEndDate int,primary key(personId))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.personId},${mapV.traceTime/1000000},cast(convert(varchar,dateadd(day,${nDays},cast(cast(${mapV.traceTime/1000000} as INT) as char(8))),112) as int))
+	  	</foreach>
+  	</foreach> 
+  	SELECT  personId ,
+        LoginHour AS traceTime ,
+        SUM(CASE WHEN hold > 0 THEN hold
+                 ELSE 0
+            END) AS hold ,
+        COUNT(*) AS times
+	FROM    ( SELECT    PersonId ,
+	                    loginDate ,
+	                    LogoutDate ,
+	                    DATEDIFF(SECOND, loginDate, LogoutDate) AS hold ,
+	                    LoginHour ,
+	                    LogoutHour
+	          FROM      ( SELECT    PersonId ,
+	                                CAST(CONVERT(VARCHAR, CAST(CAST(LoginDate AS VARCHAR(8)) AS DATE), 23)
+	                                + ' ' + CAST(LoginTime / 10000 AS VARCHAR(2))
+	                                + ':'
+	                                + CAST(LoginTime / 100 % 100 AS VARCHAR(2))
+	                                + ':' + CAST(LoginTime % 100 AS VARCHAR(2)) AS DATETIME) AS loginDate ,
+	                                CAST(CONVERT(VARCHAR, CAST(CAST(LogOutDate AS VARCHAR(8)) AS DATE), 23)
+	                                + ' ' + CAST(LogoutTime / 10000 AS VARCHAR(2))
+	                                + ':'
+	                                + CAST(LogoutTime / 100 % 100 AS VARCHAR(2))
+	                                + ':' + CAST(LogoutTime % 100 AS VARCHAR(2)) AS DATETIME) AS LogoutDate ,
+	                                LoginDate * 1000000 + LoginTime - LoginTime % 10000 AS LoginHour ,
+	                                LogOutDate * 1000000 + LogoutTime - LoginTime % 10000 AS LogoutHour
+	                      FROM      ( SELECT    a.*
+	                                  FROM      [dbo].[_Compass_Users_Login_Log_${nYearMonth}] a
+	                                            INNER JOIN @tmpData b ON a.PersonId = b.personId
+	                                            and  a.LoginDate>=b.traceDate 
+	                                            <if test="nDays!=null">
+													and a.LoginDate&lt;b.traceEndDate
+												</if>
+	                                ) a
+	                    ) a
+	        ) a
+	GROUP BY PersonId ,
+	        LoginHour;
+  </select>
+  
+  <select id="checkCompassTable" parameterType="Map" resultType="Integer">
+	  IF(OBJECT_ID('DBHistory.dbo._Compass_Users_Login_Log_${nYearMonth}') IS NOT NULL)
+		SELECT 1
+	  ELSE
+		SELECT 0
+  </select>
+  
+  <select id="queryCompassUsersLogin" parameterType="Map" resultType="Map">
+  SELECT TOP ${nRowCount} *
+  FROM (
+	    SELECT a.PersonId,a.LoginDate,a.LoginHour,SUM(DATEDIFF(SECOND,a.loginDateTime,a.LogoutDateTime)) AS totalTimes
+		FROM (
+			SELECT   PersonId ,
+					LoginDate,
+					CAST(CONVERT(VARCHAR, CAST(CAST(LoginDate AS VARCHAR(8)) AS DATE), 23)
+					+ ' ' + CAST(LoginTime / 10000 AS VARCHAR(2))
+					+ ':'
+					+ CAST(LoginTime / 100 % 100 AS VARCHAR(2))
+					+ ':' + CAST(LoginTime % 100 AS VARCHAR(2)) AS DATETIME) AS loginDateTime ,
+					CAST(CONVERT(VARCHAR, CAST(CAST(LogOutDate AS VARCHAR(8)) AS DATE), 23)
+					+ ' ' + CAST(LogoutTime / 10000 AS VARCHAR(2))
+					+ ':'
+					+ CAST(LogoutTime / 100 % 100 AS VARCHAR(2))
+					+ ':' + CAST(LogoutTime % 100 AS VARCHAR(2)) AS DATETIME) AS LogoutDateTime ,
+		
+					LoginTime / 10000 AS LoginHour 
+			FROM ( SELECT    a.*
+				FROM DBHistory.dbo._Compass_Users_Login_Log_${nYearMonth} a
+				WHERE a.LoginDate=#{loginDate}
+			)a
+		) a
+		GROUP BY a.PersonId,a.LoginDate,a.LoginHour
+  ) AS bb
+  WHERE bb.LoginHour = #{nHour} AND bb.PersonId>#{nPersonId}
+  ORDER BY bb.PersonId ASC	
+  </select>
+  
+ 
+  <select id="queryLoginOnline"  parameterType="Map" resultType="Map">
+    declare @tmpData table(personId int,traceDate int,traceEndDate int,primary key(personId))
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(${mapV.personId},${mapV.traceTime/1000000},cast(convert(varchar,dateadd(day,${nDays},cast(cast(${mapV.traceTime/1000000} as INT) as char(8))),112) as int))
+	  	</foreach>
+  	</foreach> 
+  	SELECT  personId ,
+        LoginHour AS traceTime ,
+        SUM(CASE WHEN hold > 0 THEN hold
+                 ELSE 0
+            END) AS hold ,
+        COUNT(*) AS times
+	FROM
+	(
+		SELECT a.PersonId,cast([date] as bigint)*1000000+10000 AS loginHour,a.OnlineTime AS hold 
+		FROM [DBMonitor].[dbo].[_Compass_Users_Online_St_Time] a
+		INNER JOIN @tmpData b ON a.PersonId = b.personId
+		and  a.[date]>=b.traceDate 
+	    <if test="nDays!=null">
+			and a.[date]&lt;b.traceEndDate
+		</if>
+	) a
+	GROUP BY a.PersonId,a.loginHour
+  </select>
+  
+  <select id="queryUserOnline" parameterType="Map" resultType="Map">
+  SELECT  [PersonId]
+      ,[Date]
+      ,[OnlineTime]
+      ,[MembersPoint]
+      ,[PointUpdateDate]
+  FROM [DBMonitor].[dbo].[_Compass_Users_Online_St_Time]
+  WHERE date=#{sdate,javaType=INTEGER}
+  </select>
+</mapper>

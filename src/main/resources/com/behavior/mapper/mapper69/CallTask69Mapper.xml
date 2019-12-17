@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper69.CallTask69Mapper" > 
+  <select id="queryEbPersonUnLockLog" parameterType="Map" resultType="Map">  	
+  select a.PERSONID,b.NERVEID,LOGTIME,
+     PARA3,OPID,OPNAME,COMMENTS,VALID
+  from WEBTV.EB_PERSON_OP_LOG a
+  inner join WEBTV.eb_mobile_reg_log b on a.personid=B.PERSONID
+  where  OPTYPE = 42 
+         and a.logtime>=#{sDate,jdbcType=TIMESTAMP}
+  <![CDATA[
+         and a.logtime<=#{eDate,jdbcType=TIMESTAMP}
+  ]]>
+  </select>  
+  <select id="queryKeeperUnLockUser" parameterType="Map" resultType="Map">  	
+	select b.NERVEID as PERSONID 
+	,max(case PARA3 when 'nx' THEN 1 else 0 end) as NX
+	,max(case PARA3 when 'dd' THEN 1 else 0 end) as DD
+	,max(case PARA3 when 'hy' THEN 1 else 0 end) as HY
+	,max(case PARA3 when 'zj' THEN 1 else 0 end) as ZJ
+	,max(case PARA3 when 'zlcw' THEN 1 else 0 end) as ZLCW
+		from WEBTV.EB_PERSON_OP_LOG a
+		inner join WEBTV.eb_mobile_reg_log b on a.personid=B.PERSONID
+		where  OPTYPE = 42
+		and b.nerveid in
+	  	<foreach collection="traceList" index="index" item="mapV" open="(" separator="," close=")">
+	  	${mapV.personId}
+	  	</foreach>	 
+	GROUP BY b.NERVEID
+  </select>
+  <select id="queryNextVisitTime"  parameterType="Map" resultType="Map">
+  	select NERVEID,NEXTVISITTIME,to_char(SYSDATE,'YYYYMMDD') as SDATE 
+  	from WEBTV.EB_MOBILE_REG_LOG
+	where nextvisittime is not null  and to_char(NEXTVISITTIME,'YYYYMMDD')>=to_char(SYSDATE,'YYYYMMDD')
+  </select>
+  
+  <select id="queryBehaviour"  parameterType="Map" resultType="Map">
+  SELECT t.*
+	FROM WEBTV.EB_PERSON_BEHAVIOUR_LOG t
+  where t.LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
+  and t.LOGTIME&lt;=#{eDate,jdbcType=TIMESTAMP}
+  </select>
+  <select id="queryBehavLog9"  parameterType="Map" resultType="Map">
+  SELECT t.*
+	FROM WEBTV.EB_PERSON_BEHAVLOG_9 t
+  where t.LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
+  and t.LOGTIME&lt;=#{eDate,jdbcType=TIMESTAMP}
+  	<if test="qparam3!=null">
+  	and (
+    <!-- 'soft_5356','qy_p_2018quarterVIII_3' -->
+  	param3 in(${qparam3}) 
+  	<if test="qs3!=null">
+  	or S3 in(${qs3})
+  	</if>
+  	)
+  	</if>
+  </select>
+  <select id="queryBehavLog10"  parameterType="Map" resultType="Map">
+  SELECT t.*
+	FROM WEBTV.EB_PERSON_BEHAVLOG_10 t
+  where t.LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
+  and t.LOGTIME&lt;=#{eDate,jdbcType=TIMESTAMP}
+  </select>
+  
+  <select id="querySalesRelTelallocStat"  parameterType="Map" resultType="Map">
+  	SELECT	USERID,STATDATE,CALLOUTCOST,CALLOUT,TO_CHAR(STATDATE,'yyyyMMdd') as SDATE
+	FROM (
+	  SELECT t.USERID,	t.STATDATE,	t.CALLOUTCOST,	t.CALLOUT ,ROWNUM as nRowId
+		FROM WEBTV.EB_SALES_REL_TELALLOC_STAT t
+	  where STATDATE >= to_date(#{sDate,jdbcType=INTEGER},'YYYY-MM-DD') and USERID>=#{nUserId,jdbcType=INTEGER} 
+	  ORDER BY STATDATE ASC,USERID ASC
+	) ab where ab.nRowId&lt;=#{nRowCount,jdbcType=INTEGER}
+  </select>
+  
+  <select id="queryEbPersonQuestion"  parameterType="Map" resultType="Map">
+  SELECT distinct t.*,l.NERVEID 
+	FROM WEBTV.EB_PERSON_QUESTION t
+	inner join WEBTV.EB_PERSON_REG_LOG l on t.PERSONID=l.PERSONID	
+  where t.CREATETIME >= #{sDate,jdbcType=TIMESTAMP}
+	and t.CREATETIME&lt;=#{eDate,jdbcType=TIMESTAMP}
+  </select>
+  <!-- to_date(#{sDate,jdbcType=BIGINT},'YYYY-MM-DD HH24:MI:SS') -->
+  <select id="queryEbPersonQuestionLog"  parameterType="Map" resultType="Map">	
+  SELECT distinct t.*,l.NERVEID
+	FROM WEBTV.EB_PERSON_QUESTION_LOG t
+	inner join  WEBTV.EB_PERSON_REG_LOG l on t.PERSONID=l.PERSONID
+  where t.LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
+  	and t.LogTime&lt;=#{eDate,jdbcType=TIMESTAMP}		
+  </select>
+  <!-- and a.LogTime&lt;=#{eDate,jdbcType=TIMESTAMP} -->
+  <select id="queryEbPersonKeeperLog"  parameterType="Map" resultType="Map">
+	SELECT distinct b.NerveId as PERSONID,a.PERSONID as NerveId,a.OLDKEEPERID,a.NEWKEEPERID,a.LOGTIME,a.OLDKEEPERGID,a.OPTYPE
+		,a.NEWKEEPERGID,a.COMMENTS,a.OLDKEEPERNAME,a.NEWKEEPERNAME,a.VALID
+	FROM WEBTV.EB_PERSON_KEEPER_LOG a
+	INNER JOIN WEBTV.EB_MOBILE_REG_LOG b on a.PersonId=b.PersonId
+	WHERE a.LogTime>=#{sDate,jdbcType=TIMESTAMP} 
+		and a.LogTime&lt;=#{eDate,jdbcType=TIMESTAMP}
+  </select>
+  
+  <select id="queryEbPersonKeeperLog10"  parameterType="Map" resultType="Map">
+	SELECT distinct b.NerveId as PERSONID,a.PERSONID as NERVEID,a.OLDKEEPERID,a.NEWKEEPERID,a.LOGTIME,a.OLDKEEPERGID,a.OPTYPE
+		,a.NEWKEEPERGID,a.COMMENTS,a.OLDKEEPERNAME,a.NEWKEEPERNAME,a.VALID,c.type as FROMWHERE,b.DOMAIN,b.FINISHTIME
+	FROM WEBTV.EB_PERSON_KEEPER_LOG a
+	INNER JOIN WEBTV.EB_MOBILE_REG_LOG b on a.PersonId=b.PersonId
+	LEFT JOIN WEBTV.TV_AGENTNAME2DOMAIN c on c.domain = b.domain 
+	WHERE a.OPTYPE=10 and a.LogTime>=#{sDate,jdbcType=TIMESTAMP} 
+		and a.LogTime&lt;=#{eDate,jdbcType=TIMESTAMP}
+  </select>
+  <select id="queryEbPersonPresaleLog10" parameterType="Map" resultType="Map">  
+  	select A.PERSONID
+  		,NVL(max(CASE WHEN A.CUSTESTIMATE='B0' THEN LOGTIME ELSE NULL END),0)  as B0
+		,NVL(max(CASE WHEN A.CUSTESTIMATE='B1' THEN LOGTIME ELSE NULL END),0)  as B1
+	from (
+		SELECT A.PERSONID,A.CUSTESTIMATE,TO_CHAR(max(A.LOGTIME),'YYYYMMDD') as logtime
+		FROM webtv.EB_PERSON_PRESALE_LOG a 
+		inner join (
+			select a.PERSONID,min(a.LOGTIME) as logTime	
+			from WEBTV.EB_PERSON_KEEPER_LOG a
+			WHERE a.OPTYPE=10 and a.LogTime>=#{sDate,jdbcType=TIMESTAMP} 
+			and a.LogTime&lt;=#{eDate,jdbcType=TIMESTAMP}
+			GROUP BY a.PERSONID
+		) b on a.PersonId=b.PersonId and a.LOGTIME&lt;=b.LOGTIME
+		WHERE a.custestimate in ('B0','B1')
+		group by A.PERSONID,A.CUSTESTIMATE
+	) a
+	GROUP BY a.PERSONID	
+  </select>
+  
+  <select id="queryEbPersonPresaleLog"  parameterType="Map" resultType="Map">           
+    SELECT distinct *
+	FROM (
+	    SELECT A.PERSONID,A.LOGTIME,B.NERVEID,A.KEEPERID,A.CUSTESTIMATE,0 AS A0,A.BOUGHT,A.PREALLOCGID,a.VERSION
+	    FROM webtv.EB_PERSON_PRESALE_LOG a
+	    LEFT JOIN WEBTV.eb_mobile_reg_log b ON a.personid = b.personid	
+	    WHERE 
+	    	<if test="sDate==null">
+	    	a.LOGDATE > to_date(to_char(sysdate-2,'yyyy-MM-dd'),'yyyy-MM-dd')
+	    	</if> 
+	        <!-- AND	a.VERSION = 101 TO_DATE('2017-09-01 17:09:00','yyyy-mm-dd hh24:mi:ss') -->
+	        <if test="sDate!=null">
+	        a.LOGTIME >=#{sDate,jdbcType=TIMESTAMP}  
+            AND a.LOGTIME &lt;#{eDate,jdbcType=TIMESTAMP}     
+	        </if>
+	        and a.custestimate in ('B','B0','BPLUS','B1','B2','B3','C')
+	    UNION ALL
+	    SELECT A.PERSONID,A.LOGTIME,B.NERVEID,A.KEEPERID,A.CUSTESTIMATE,0 AS A0,A.BOUGHT,A.PREALLOCGID,101 as VERSION
+        FROM webtv.EB_PERSON_PRESALE_LOG a
+        LEFT JOIN WEBTV.eb_mobile_reg_log b ON a.personid = b.personid    
+        WHERE a.VERSION = 102
+            <if test="sDate==null">and a.LOGDATE > to_date(to_char(sysdate-2,'yyyy-MM-dd'),'yyyy-MM-dd')</if>
+            <if test="sDate!=null">
+            AND a.LOGTIME >=#{sDate,jdbcType=TIMESTAMP}  
+            AND a.LOGTIME &lt;#{eDate,jdbcType=TIMESTAMP}     
+			</if>
+            and a.custestimate in ('A0')
+            and comments like '%新增A0%'
+	) a 
+	  
+  </select>
+  
+  <select id="queryEbMobileRegLogDate"  parameterType="Map" resultType="Map">           
+    SELECT TO_DATE(YEARMONTH, 'yyyy-MM') as qDate FROM 
+    (SELECT DISTINCT TO_CHAR(CREATETIME,'YYYY-MM') AS YEARMONTH 
+    FROM  WEBTV.EB_MOBILE_REG_LOG A )
+	ORDER BY YEARMONTH     
+  </select>
+  
+  <select id="queryEbMobileRegLog"  parameterType="Map" resultType="Map">   
+    SELECT *
+    FROM (  
+	    SELECT PersonId, 
+	           Nerveid  ,
+	           KEEPERID ,
+	           CUSTESTACT1 ,
+	           createtime,
+	           finishTime,
+	           firstalloctime,
+	           A0,
+	           Bplus,
+	           B0,
+	           B1,
+	           B2,
+	           B3,
+	           preallocgid , 
+	           PRESALETYPE,
+	           TYPE,
+	           Bought,
+	           KEEPERGID,
+	           FromWhere,
+	           Domain
+	    FROM WEBTV.EB_MOBILE_REG_LOG A 
+		WHERE PERSONID>#{personId,jdbcType=INTEGER} 
+			AND (KEEPERGID &lt;> 1  or B1>0 or B2>0 or B3>0 or Bplus>0)		
+		ORDER BY PERSONID ASC
+	) a
+	WHERE ROWNUM&lt;=#{rowCount,jdbcType=INTEGER}	
+  </select>
+  
+  <select id="queryEbFlashMaturevalue"  parameterType="Map" resultType="Map">     
+    SELECT NDATE,PERSONID,NID,LOGINDAYS,NEWSARTICLECNT,ROOMDAYS,CALLINCNT,MODIFYTIME
+	FROM WEBTV.EB_FLASH_MATUREVALUE a 
+	WHERE NDATE=#{sDate,jdbcType=INTEGER}
+  </select>
+  
+  <select id="queryAgentName2Domain" parameterType="Map" resultType="Map">
+  	SELECT KEYWORD,DOMAIN,MATCHLEVEL
+		      ,ADDPERSON,ADDTIME,MODIFYPERSON
+		      ,MODIFYTIME,TYPE
+	FROM WEBTV.TV_AGENTNAME2DOMAIN a
+  </select>
+  
+  <select id="queryEbSalesRelTelallocStat" parameterType="Map" resultType="Map">
+  SELECT  USERID, GROUPID, CNAME, 
+	   TO_CHAR(STATDATE,'YYYY-MM-DD') as STATDATE
+	   , CALLOUT, CALLIN, 
+	   CALLTV, TOTAL, CALLOUTRCV, 
+	   CALLINRCV, CALLTVRCV, CALLOUTGIV, 
+	   CALLINGIV, CALLTVGIV, RCV, 
+	   GIV, NETCALLOUT, NETCALLIN, 
+	   NETCALLTV, NETTOTAL, CALLOUTCOST, 
+	   CALLINCOST, CALLTVCOST, TOTALCOST, 
+	   CALLOUTRCVCOST, CALLINRCVCOST, CALLTVRCVCOST, 
+	   CALLOUTGIVCOST, CALLINGIVCOST, CALLTVGIVCOST, 
+	   RCVCOST, GIVCOST, NETCALLOUTCOST, 
+	   NETCALLINCOST, NETCALLTVCOST, NETTOTALCOST, 
+	   TOPGID, ALLOCRETURN, ALLOCVICE, 
+	   ALLOCRECALL
+	FROM WEBTV.EB_SALES_REL_TELALLOC_STAT
+	where Statdate = to_date(#{sDate},'yyyy-mm-dd')
+	and  UserId &lt;> 0
+  </select>
+  <select id="queryEbPersonPresaleDetail" parameterType="Map" resultType="Map">
+  	SELECT *
+	FROM WEBTV.EB_PERSON_PRESALE_NEW_DETAIL
+	where LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
+	and ROWNUM&lt;30000
+  </select>
+  
+  <select id="queryEbRelPersonNerve"  parameterType="Map" resultType="Map">     
+    SELECT *
+	FROM WEBTV.EB_REL_PERSON_NERVE
+	where CREATETIME >= #{sDate,jdbcType=TIMESTAMP}
+	and ROWNUM&lt;30000
+  </select>
+</mapper>
