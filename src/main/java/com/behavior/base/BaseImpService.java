@@ -10,6 +10,9 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 import com.cobin.util.Tools;
 
+/**
+ * @author Cobin
+ */
 public abstract class BaseImpService extends BaseService {
 	private Properties config;
 	public void loadContext() {

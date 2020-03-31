@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper9104.CallTask9104Mapper" >
+  <parameterMap type="Map" id="proIndex">
+    <parameter property="dataType" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/>
+  </parameterMap>
+  <update id="updateFinMerDataSystemToday" parameterMap="proIndex" statementType="CALLABLE" >
+  {call DB_CompanyData.dbo.P_DataSystem_BankStatement_Funds_FlowDetails(?, ?)}
+  </update> 
+  <select id="updateFinMerDataSystemFlowDetails" parameterType="Map" resultType="String">
+    if(OBJECT_ID('tempdb..#tempData') is not null)
+        drop table #tempData
+    create table #tempData (rId int ,flowRid int);
+    <foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+      insert into #tempData values
+      <foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+        (${mapV.rId},${mapV.flowRid})
+      </foreach>
+    </foreach>
+    if(OBJECT_ID('tempdb..#flowDetails') is not null)
+        drop table #flowDetails
+    create table #flowDetails (rId int ,flowRid int,primary key(rId,flowRid));
+    insert into #flowDetails
+    select distinct rId,flowRid
+    from #tempData
+
+    DECLARE	 @errMsg varchar(1024)
+    EXEC  DB_CompanyData.[dbo].[P_DataSystem_BankStatement_Funds_FlowDetails]
+        @errMsg = @errMsg OUTPUT
+
+  </select>
+  <select id="getFinMerDataSystemTodayIds" parameterType="map" resultType="map">
+    select rId
+    from DBNERVE.dbo._Fin_Mer_Trans a
+    ORDER BY rid desc
+  </select>
+  <select id="getFinMerDataSystemAll" parameterType="map" resultType="map">
+    SELECT rId,relationId,claim,a.splitRelationId,a.groupRelationId
+    FROM DBNERVE.dbo._Fin_Mer_Trans a
+  </select>
+  <select id="getFinMerDataSystemFlowDetail" parameterType="map" resultType="map">
+    SELECT a.rId,a.flowRid,a.claim
+    FROM DB_CompanyData.dbo.Fin_Mer_DataSystem_FlowDetails a
+  </select>
+</mapper>

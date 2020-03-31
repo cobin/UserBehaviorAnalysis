@@ -29,4 +29,5 @@ public interface CallTask69Mapper {
 	List<Map<Object, Object>> queryEbPersonPresaleDetail(@Param("sDate") Date sDate);	
 	List<Map<Object, Object>> queryEbRelPersonNerve(@Param("sDate") Date sDate);	
 	List<Map<Object, Object>> queryEbCustpresaleInfo(@Param("personId") int personId,@Param("rowCount") int rowCount);	
+	List<Map<Object, Object>> queryPvConfPresale(@Param("userIds") String userIds);
 }

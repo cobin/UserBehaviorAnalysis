@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper9103.CallTask9103Mapper" > 
+  <parameterMap type="Map" id="proIndex">
+  <parameter property="sdate" jdbcType="VARCHAR" mode="IN" javaType="java.lang.String"/> 
+  <parameter property="actId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/> 
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
+  </parameterMap>
+  <update id="updateUpgradeControlCenterAll360DSData" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call DB_CompanyData.dbo.P_UpgradeControlCenter_All_360DS_Data_Interface(?,?, ?)}
+  </update> 
+  <update id="updateUpgradeControlCenterAll360XDData" parameterMap="proIndex" statementType="CALLABLE" >  
+  {call DB_CompanyData.dbo.P_UpgradeControlCenter_All_360XD_Data_Interface(?,?, ?)}
+  </update> 
+</mapper>

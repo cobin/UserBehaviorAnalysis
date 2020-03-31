@@ -5,7 +5,7 @@
 	">
 	<bean id="propertyConfigurer"
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-		<property name="location" value="config/database.properties" />
+		<property name="location" value="file:config/database.properties" />
 	</bean>	
 	
 	<bean id="myDataSource91" class="org.logicalcobwebs.proxool.ProxoolDataSource">
@@ -155,7 +155,7 @@
 		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="myDataSource111" />
 	</bean>
-	<!-- 111服务器配置 -->
+	<!-- 1110服务器配置 -->
 	 
 	<bean id="myDataSource1110" class="org.logicalcobwebs.proxool.ProxoolDataSource">
 		<property name="alias" value="${jdbc.alias1110}"></property>
@@ -179,7 +179,7 @@
 		<property name="dataSource" ref="myDataSource1110" />
 	</bean>
 	
-	<!-- 111服务器配置 -->
+	<!-- 1111服务器配置 -->
 	 
 	<bean id="myDataSource1111" class="org.logicalcobwebs.proxool.ProxoolDataSource">
 		<property name="alias" value="${jdbc.alias1111}"></property>
@@ -204,7 +204,7 @@
 	</bean>
 	
 	
-		<!-- 111服务器配置 -->
+		<!-- 1112服务器配置 -->
 	 
 	<bean id="myDataSource1112" class="org.logicalcobwebs.proxool.ProxoolDataSource">
 		<property name="alias" value="${jdbc.alias1112}"></property>
@@ -227,7 +227,31 @@
 		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="myDataSource1112" />
 	</bean>
-	
+
+	<!-- 1114服务器配置 -->
+
+	<bean id="myDataSource1114" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias1114}"></property>
+		<property name="delegateProperties"><value>user=${jdbc.username1114},password=${jdbc.password1114}</value></property>
+		<property name="user" value="${jdbc.username1114}"/>
+		<property name="password" value="${jdbc.password1114}"/>
+		<property name="driver" value="${jdbc.driverClassName1114}"/>
+		<property name="driverUrl" value="${jdbc.url1114}"/>
+		<property name="houseKeepingTestSql" value="${jdbc.query1114}"></property>
+	</bean>
+	<bean id="sqlSessionFactory1114" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource1114" />
+		<property name="configLocation" value="config/mybatis-config.xml" />
+	</bean>
+	<bean id="scannerConfigurer1114" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory1114"/>
+		<property name="basePackage" value="com.behavior.mapper.mapper1114" />
+	</bean>
+	<bean id="transactionManager1114"
+		  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource1114" />
+	</bean>
+
 	<!-- 69 Oracle服务器配置 -->
 	 
 	<bean id="myDataSource69" class="org.logicalcobwebs.proxool.ProxoolDataSource">
@@ -298,5 +322,51 @@
 	<bean id="transactionManager9102"
 		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="myDataSource9102" />
+	</bean>
+
+	<!-- 9103 小单中控服务器配置 -->
+
+	<bean id="myDataSource9103" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias9103}"></property>
+		<property name="delegateProperties"><value>user=${jdbc.username9103},password=${jdbc.password9103}</value></property>
+		<property name="user" value="${jdbc.username9103}"/>
+		<property name="password" value="${jdbc.password9103}"/>
+		<property name="driver" value="${jdbc.driverClassName9103}"/>
+		<property name="driverUrl" value="${jdbc.url9103}"/>
+		<property name="houseKeepingTestSql" value="${jdbc.query9103}"></property>
+	</bean>
+	<bean id="sqlSessionFactory9103" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource9103" />
+	</bean>
+	<bean id="scannerConfigurer9103" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory9103"/>
+		<property name="basePackage" value="com.behavior.mapper.mapper9103" />
+	</bean>
+	<bean id="transactionManager9103"
+		  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource9103" />
+	</bean>
+
+	<!-- 9104 财务数据配置 -->
+
+	<bean id="myDataSource9104" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias9104}"></property>
+		<property name="delegateProperties"><value>user=${jdbc.username9104},password=${jdbc.password9104}</value></property>
+		<property name="user" value="${jdbc.username9104}"/>
+		<property name="password" value="${jdbc.password9104}"/>
+		<property name="driver" value="${jdbc.driverClassName9104}"/>
+		<property name="driverUrl" value="${jdbc.url9104}"/>
+		<property name="houseKeepingTestSql" value="${jdbc.query9104}"></property>
+	</bean>
+	<bean id="sqlSessionFactory9104" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource9104" />
+	</bean>
+	<bean id="scannerConfigurer9104" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory9104"/>
+		<property name="basePackage" value="com.behavior.mapper.mapper9104" />
+	</bean>
+	<bean id="transactionManager9104"
+		  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource9104" />
 	</bean>
 </beans>

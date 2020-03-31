@@ -8,45 +8,24 @@
   </parameterMap>
   <update id="updateSmallSingleCompare" parameterMap="proIndex" statementType="CALLABLE" >  
   {call BD_UserNT.dbo.P_SmallSingleWeb_Experiment_Source_Statistics_Scheduler(?,?, ?)}
-  </update>  
-  <select id="queryMonitorWapPcAdept" parameterType="Map" resultType="Map">
-  
-	DECLARE @startDate INT=20190701
-		,@lastDate INT =20190719
-	DECLARE @actId INT = 107
-	
-	SELECT  @actId = MIN(actId) ,
-	        @startDate = CONVERT(VARCHAR, MIN(startDate), 112) ,
-	        @lastDate = CONVERT(VARCHAR, MIN(EndDate), 112)
+  </update>
+  <select id="queryMonitorWapPcActId" parameterType="Map" resultType="Map">
+  	SELECT  DISTINCT actId
 	FROM    [DB_WebNerveData].[dbo].[_Mission_Act_Info]
-	WHERE   actType = 1
-	        AND CAST(GETDATE() AS DATE) BETWEEN startdate AND EndDate
-	        AND actId IN ( SELECT DISTINCT
-	                                Actid
-	                       FROM     DB_CompanyData.dbo._NewBieUserSource );
-  	DECLARE @tPerson TABLE (regionType INT ,regionCenter INT ,deptId INT)
+	WHERE   actType = 1 AND CAST(GETDATE() AS DATE) BETWEEN startdate AND EndDate
+	AND ActName NOT LIKE '%轮耕%'
+	order by actId desc
+  </select>
+  <select id="queryMonitorWapPcAdept" parameterType="Map" resultType="Map">
+	DECLARE @actId INT = ${actId}
+  	DECLARE @tPerson TABLE (deptId INT)
 	INSERT INTO @tPerson
-	SELECT DISTINCT
-	        a.RegionType,a.RegionCenter,a.ADeptId  		      
-	FROM    DB_CompanyData.dbo.[_Human_Person_Salers_snapshot] a
-	WHERE   a.Sdate &lt;= @lastDate
-	        AND a.Sdate >= @startDate
-	        AND bMainPosition = 1
-	        AND isValid = 1
-	        AND (
-	        	RegionType in(${regionTypes})
-	        	OR
-	        	ADeptId in(${regionTypes})
-	        	)	        
-	
+	SELECT 	a.UnitId
+    FROM [DB_WebNerveData].[dbo].[_Mission_KPI_360_SeatInfo] a
+    WHERE unittype&lt;3 AND a.ActId =@actId
 	SELECT DISTINCT deptId FROM @tPerson
 	UNION
-	SELECT DISTINCT regionType FROM @tPerson
-	UNION
-	SELECT DISTINCT RegionCenter FROM @tPerson
-	UNION
-	SELECT 0 AS company 
-	
+	SELECT 0 AS company
   </select>
   
   <parameterMap type="Map" id="proIndex1">

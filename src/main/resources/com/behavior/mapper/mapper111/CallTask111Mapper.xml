@@ -210,7 +210,7 @@
 		WHERE a.traceAction = 2
   	SELECT a.personId,FORMAT(a.traceTime,'####-##-## ##:##:##') AS traceTime FROM
 	(
-		SELECT *
+		SELECT * 
 		FROM dbo._Behavior_UserTrace a 
 		WHERE cast(a.traceTime/1000000 as int)=#{sDate,jdbcType=INTEGER}
 		AND a.traceAction = 1
@@ -531,6 +531,77 @@
   	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_Behavior_Log]
   </select>
   
+  <insert id="insertBehavLog8" parameterType="Map">
+    declare @tmpData table(
+		PERSONID INT NOT NULL,	
+		LOGTIME DATETIME NOT NULL,	
+		NERVEID INT NOT NULL,	
+		USERCARD VARCHAR(100),	
+		LOGTYPE INT NOT NULL,	
+		MEMO VARCHAR(4000),
+		PARAM1 VARCHAR(800),	
+		PARAM2 VARCHAR(800),
+		PARAM3 VARCHAR(800),
+		PARAM4 VARCHAR(800),
+		PARAM5 VARCHAR(800),	
+		PARAM6 VARCHAR(800),	
+		SERVICEID VARCHAR(800),	
+		S3 VARCHAR(800),	
+		MODIFYTIME DATETIME		
+	);
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.PERSONID},'${mapV.LOGTIME}',${mapV.NERVEID}
+	  	,${mapV.USERCARD},${mapV.LOGTYPE},${mapV.MEMO}
+	  	,${mapV.PARAM1},${mapV.PARAM2},${mapV.PARAM3}
+	  	,${mapV.PARAM4},${mapV.PARAM5},${mapV.PARAM6}
+	  	,${mapV.SERVICEID},${mapV.S3},'${mapV.MODIFYTIME}'
+	  	)
+	  	</foreach>  
+  	</foreach> 
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_BehavLog_8] AS T
+	USING @tmpData AS S
+	ON T.PersonId = S.PersonId AND T.LOGTIME = S.LOGTIME AND T.NERVEID = S.NERVEID AND T.LOGTYPE = S.LOGTYPE
+	<!--  WHEN MATCHED THEN UPDATE SET T.traceAction = S.traceAction -->
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID
+		      ,LOGTIME
+		      ,NERVEID
+		      ,USERCARD
+		      ,LOGTYPE
+		      ,MEMO
+		      ,PARAM1
+		      ,PARAM2
+		      ,PARAM3
+		      ,PARAM4
+		      ,PARAM5
+		      ,PARAM6
+		      ,SERVICEID
+		      ,S3
+		      ,MODIFYTIME) 
+		VALUES(S.PERSONID
+		      ,S.LOGTIME
+		      ,S.NERVEID
+		      ,S.USERCARD
+		      ,S.LOGTYPE
+		      ,S.MEMO
+		      ,S.PARAM1
+		      ,S.PARAM2
+		      ,S.PARAM3
+		      ,S.PARAM4
+		      ,S.PARAM5
+		      ,S.PARAM6
+		      ,S.SERVICEID
+		      ,S.S3
+		      ,S.MODIFYTIME);  	
+  </insert>
+  
+  <select id="getBehavLog8MaxDate" parameterType="Map" resultType="java.util.Date">
+  	SELECT ISNULL(MAX(LOGTIME),CAST('2019-09-19' AS DATE)) 
+  	FROM [BD_UsersORFromOra].[dbo].[_Eb_Person_BehavLog_8]
+  </select>
     <insert id="insertBehavLog9" parameterType="Map">
     declare @tmpData table(
 		PERSONID INT NOT NULL,	
@@ -633,6 +704,7 @@
 	  	,${mapV.SERVICEID},${mapV.S3},'${mapV.MODIFYTIME}'
 	  	)
 	  	</foreach>  
+	  	;
   	</foreach> 
   	MERGE INTO [BD_UsersORFromOra].[dbo].[_Eb_Person_BehavLog_10] AS T
 	USING @tmpData AS S
@@ -1806,4 +1878,98 @@
 		);   	 
   </insert>
  
+  <select id="queryEbCustpresaleInfo" parameterType="Map" resultType="Map">
+  	select PERSONID, 
+            B0,
+		    B1,
+		    B2,
+		    B3,
+		    BPlus,
+		    A0
+    from [BD_UsersORFromOra].[dbo].[_EB_CUSTPRESALE_INFO] a
+    where PERSONID>=#{sPersonId,jdbcType=INTEGER}
+    	and PERSONID&lt;=#{ePersonId,jdbcType=INTEGER}
+    order by PERSONID
+  </select> 
+  
+  <insert id="insertEbCustpresaleInfo" parameterType="Map">  
+	declare @tmpData table(
+  	   	  PERSONID INT NOT NULL,           
+          B0 INT NULL,
+          B1 INT NULL,
+          B2 INT NULL,
+          B3 INT NULL,
+          BPLUS INT NULL,
+          A0 INT NULL,
+          PRIMARY KEY(PERSONID)
+  	);
+  
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID}
+		  	,${mapV.B0},${mapV.B1},${mapV.B2}
+		  	,${mapV.B3},${mapV.BPLUS},${mapV.A0}
+	  	)
+	  	</foreach>;
+  	</foreach>
+
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_EB_CUSTPRESALE_INFO] AS T
+	USING @tmpData AS S
+	ON T.PERSONID=S.PERSONID
+	WHEN MATCHED THEN UPDATE SET 
+		T.A0 = S.A0
+		,T.BPLUS = S.BPLUS
+		,T.B0 = S.B0
+		,T.B1 = S.B1
+		,T.B2 = S.B2
+		,T.B3 = S.B3
+		,T.addDate = GetDate()
+	WHEN NOT MATCHED THEN 
+		INSERT (PERSONID,
+           A0,
+           BPLUS,
+           B0,
+           B1,
+           B2,
+           B3) 
+		VALUES(S.PERSONID,
+           S.A0,
+           S.BPLUS,
+           S.B0,
+           S.B1,
+           S.B2,
+           S.B3);   	 
+  </insert>
+  
+  <update id="updateEbCustpresaleInfo" parameterType="Map">  
+	declare @tmpData table(
+  	   	  PERSONID INT NOT NULL,
+          PRIMARY KEY(PERSONID)
+  	);
+  
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.PERSONID}
+	  	)
+	  	</foreach>;
+  	</foreach>
+
+  	MERGE INTO [BD_UsersORFromOra].[dbo].[_EB_CUSTPRESALE_INFO] AS T
+	USING @tmpData AS S
+	ON T.PERSONID=S.PERSONID
+	WHEN MATCHED THEN UPDATE SET 
+		T.A0 = 0
+		,T.BPLUS = 0
+		,T.B0 = 0
+		,T.B1 = 0
+		,T.B2 = 0
+		,T.B3 = 0
+		,T.addDate = GetDate()
+	;   	 
+  </update>
+  
 </mapper>

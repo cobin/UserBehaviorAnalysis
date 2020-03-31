@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper1114.CallTask1114Mapper" >
+  <parameterMap type="Map" id="proIndex">
+    <parameter property="Opid" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="actId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="searchType" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="startDate" jdbcType="TIMESTAMP" mode="IN" javaType="java.util.Date"/>
+    <parameter property="endDate" jdbcType="TIMESTAMP" mode="IN" javaType="java.util.Date"/>
+    <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/>
+  </parameterMap>
+  <update id="updateSmallOrderWap" parameterMap="proIndex" statementType="CALLABLE" >
+  {call BD_UserNT.dbo.P_PlatForm_360WapNewResource_Order_WorkCall_B_Daily_Scheduler(?,?,?, ?, ?,?)}
+  </update>
+  <select id="getSmallOrderWapActInfo" parameterType="Map" resultType="Map">
+  	SELECT DISTINCT a.actId
+	FROM DB_WebNerveData.dbo._Mission_Act_Info a
+	WHERE  a.ActType=1 AND a.IsValid=1 AND  GETDATE() BETWEEN a.StartDate AND a.EndDate
+	AND a.ActName NOT LIKE '%轮耕%'
+  </select>
+  <select id="getSmallOrderUserInfo" parameterType="Map" resultType="Map">
+    DECLARE @sDate VARCHAR(10) = '${sDate}'
+    ,@eDate VARCHAR(10) = '${eDate}'
+    IF OBJECT_ID('tempdb..#salesMan') IS NOT NULL
+    DROP TABLE #salesMan
+
+    create table #salesMan(
+    PersonId int ,
+    PersonName VARCHAR(100),
+    ADeptId INT,
+    AGroupId INT,
+    RegionType INT ,
+    RegionCenter INT,
+    GroupName VARCHAR(300) NULL,
+    DeptName VARCHAR(300) NULL,
+    HireDate DATE NULL,
+    LeaveDate DATE NULL
+    )
+    insert into #salesMan
+    SELECT a.*,b.DeptName AS groupName,c.DeptName
+    ,CAST(d.HireDate AS DATE) AS HireDate
+    ,CAST(d.LeaveDate AS DATE) AS LeaveDate
+    FROM (
+    select a.PersonId,MAX(PersonName) AS personName,MAX(ADeptId) AS adepteId,MAX(AGroupId) AS agroupId,MAX(RegionType) AS
+    regionType,MAX(RegionCenter) AS regionCenter
+    from DB_CompanyData.dbo._Human_Person_Salers_snapshot a
+    INNER JOIN (
+    SELECT PersonId,MAX(sdate) AS sdate
+    FROM DB_CompanyData.dbo._Human_Person_Salers_snapshot a
+    WHERE bMainPosition=1
+    and RegionCenter IN (1,4,6)
+    and Sdate>=CONVERT(VARCHAR,CAST(@sDate AS DATE),112) AND Sdate&lt;=CONVERT(VARCHAR,CAST(@eDate AS DATE),112)
+    And isvalid=1
+    GROUP BY a.PersonId
+    ) b ON a.PersonId=b.personid AND a.sdate=b.sdate
+    WHERE bMainPosition=1
+    and RegionCenter IN (1,4,6)
+    And isvalid=1
+    group by a.PersonId
+    ) a
+    LEFT JOIN [DBNERVE].[dbo].[_Human_Department] b ON a.agroupId=b.DeptId
+    LEFT JOIN [DBNERVE].[dbo].[_Human_Department] c ON a.adepteId=c.DeptId
+    INNER JOIN [DBNERVE].[dbo].[_Human_Person_Employee] d ON d.PersonId=a.PersonId
+
+    IF OBJECT_ID('tempdb..#result') IS NOT NULL --分号数据
+    DROP TABLE #result
+    CREATE TABLE #result(personId INT,pName VARCHAR(300) NULL,pCount INT ,PRIMARY KEY(personId))
+
+    INSERT INTO #result
+    SELECT a.USERID,MAX(cName) AS cName,SUM(a.CALLOUT) AS callout
+    FROM [BD_UsersORFromOra].[dbo].[_EB_SALES_REL_TELALLOC_STAT] a
+    WHERE DATEDIFF(DAY,CAST(@sDate AS DATE),a.STATDATE)>=0
+    AND DATEDIFF(DAY,CAST(@eDate AS DATE),a.STATDATE)&lt;=0
+    GROUP BY a.USERID
+
+    IF OBJECT_ID('tempdb..#transUser') IS NOT NULL --分号数据
+    DROP TABLE #transUser
+    SELECT eb.KeeperId, COUNT(*) AS TransNum
+    ,SUM(CASE WHEN ti.TotalMoney=100 THEN 1 ELSE 0 END) AS tb100
+    ,SUM(CASE WHEN ti.RealMoney&lt;=100 THEN 1 ELSE 0 END) AS lw100 --ti.RealMoney+ti.TransBrokerageMoney&lt;=110
+    ,SUM(uc.B0orB1) AS B0orB1
+    ,SUM(uc.B0) AS B0
+    ,SUM(uc.B1) AS B1
+    INTO #transUser
+    FROM DBNERVE.dbo._Trans_Index ti
+    INNER JOIN DBNERVE.dbo._Trans_CustomerRelation_EB eb
+    ON ti.TransId = eb.TransId
+    LEFT JOIN DBNERVE.dbo._ProductSuit ps
+    ON ti.ProductSuitId = ps.ProductSuitId
+    LEFT JOIN (
+    SELECT uc.PersonId,
+    CASE WHEN b0 > 0 OR uc.B1 > 0 THEN 1 ELSE 0 END AS B0orB1
+    ,CASE WHEN b0 > 0 THEN 1 ELSE 0 END AS B0
+    ,CASE WHEN uc.B1 > 0 THEN 1 ELSE 0 END AS B1
+    FROM DB_CompanyData.dbo._UpgraderClass uc
+    WHERE sdate = CONVERT(VARCHAR,dateadd(DAY,1,@eDate),112)
+    AND uc.ServiceLevelId = 0
+    AND uc.StartState = 3
+    )uc ON ti.PersonId = uc.PersonId
+    WHERE ti.xLastPayTime >= @sDate AND ti.xLastPayTime&lt; dateadd(DAY,1,@eDate)
+    AND eb.Valid = 1
+    AND ps.ProductCateTypeId = 1
+    AND eb.isnewbefore = 1
+    AND ti.ReturnType = 0
+    AND ti.xPayStatus = 3
+    GROUP BY eb.KeeperId
+
+    IF OBJECT_ID('tempdb..#resultOra') IS NOT NULL --分号数据
+    DROP TABLE #resultOra
+    CREATE TABLE #resultOra(personId INT,pCount INT)
+
+    INSERT INTO #resultOra
+    ( personId, pCount )
+    SELECT personId,pCount FROM #result
+
+    IF OBJECT_ID('tempdb..#resultOra1') IS NOT NULL --分号数据
+    DROP TABLE #resultOra1
+    SELECT a.NEWKEEPERID,COUNT(*) AS pCount
+    INTO #resultOra1
+    FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+    WHERE a.sdate>=CONVERT(VARCHAR,CAST(@sDate AS DATE),112) AND a.sdate&lt;=CONVERT(VARCHAR,CAST(@eDate AS DATE),112) AND
+    a.isValid=1
+    GROUP BY a.NEWKEEPERID
+
+    SELECT b.PersonId as keeperId,b.PersonName as personName,ISNULL(b.GroupName,'') AS groupName,b.DeptName as deptName
+    ,CONVERT(VARCHAR,b.HireDate,23) as hireDate
+    ,CASE WHEN b.LeaveDate IS NULL THEN '在职' ELSE '离职' END as leaveStatus
+    ,ISNULL(aa.pCount,0) AS newResource
+    ,ISNULL(c.TransNum,0) AS newTransNum
+    ,ISNULL(c.B0orB1,0) AS b01NewTransNum
+    ,ISNULL(c.tb100,0) AS specialNum
+    ,ISNULL(c.lw100,0) AS lowerNum
+    ,ISNULL(c.b0,0) AS b0NewTransNum
+    ,ISNULL(c.b1,0) AS b1NewTransNum
+    ,0 AS ALLOCSPEED
+    ,'' AS SPEEDDATE
+    FROM #salesMan b
+    LEFT JOIN #resultOra aa ON aa.personId=b.PersonId
+    LEFT JOIN #transUser c ON c.KeeperId = b.personId
+    where
+        b.RegionType IN (${adeptId})
+      or
+        b.ADeptId IN (${adeptId})
+    ORDER BY b.ADeptId,b.AGroupId, b.PersonId
+  </select>
+</mapper>

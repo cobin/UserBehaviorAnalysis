@@ -118,12 +118,13 @@ public class WorkCallMailNotify extends WorkJob {
 		//以只读权限打开收件箱  
 		folder.open(Folder.READ_ONLY);  
 		log.debug("收件箱邮件："+folder.getMessageCount());
-//		Message _messages[] = folder.getMessages();  
-//		for(Message msg : _messages ) {
-//			log.debug(msg.getFrom()[0]);
-//		}
+		Message[] allMessages = folder.getMessages();
+		for(Message msg : allMessages ) {
+			log.debug(msg.getSubject());
+			break;
+		}
 		log.debug("过滤发件人为:"+bm.getConfig("mail.from"));		
-		Message messages[] = folder.search(st);
+		Message[] messages = folder.search(st);
 		log.debug("收到今天对方发送的邮件>>"+messages.length);
 		for (Message message : messages) {
 			// 获取邮件具体信息
@@ -135,8 +136,9 @@ public class WorkCallMailNotify extends WorkJob {
 				for (int i = 0, n = mp.getCount(); i < n; i++) {
 					Part part = mp.getBodyPart(i);
 					String disposition = part.getDisposition();
-					if ((disposition != null)
-							&& (disposition.equals(Part.ATTACHMENT) || (disposition.equals(Part.INLINE)))) {
+					boolean isOk = (disposition != null)
+							&& (disposition.equals(Part.ATTACHMENT) || (disposition.equals(Part.INLINE)));
+					if (isOk) {
 						String pName = (new String(Tools.base64Decode(part.getFileName().replaceFirst("=\\?gb18030\\?B\\?", "")),"GBK"));
 						boolean save=saveFile(pName, part.getInputStream());
 						if(save){
@@ -241,7 +243,9 @@ public class WorkCallMailNotify extends WorkJob {
 		StringBuffer buf = new StringBuffer( 1024 ); 			
         while ( in.available() > 0 ) {  
             int i = in.read( b, 0, 1024 );  
-            if ( i < 0 ) break;  
+            if ( i < 0 ){
+            	break;
+			}
             buf.append( new String( b, 0, i ) );  
         }  
         if ( exec.isClosed() ) {  

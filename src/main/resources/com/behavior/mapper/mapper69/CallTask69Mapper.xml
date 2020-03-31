@@ -40,6 +40,13 @@
   where t.LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
   and t.LOGTIME&lt;=#{eDate,jdbcType=TIMESTAMP}
   </select>
+  <select id="queryBehavLog8"  parameterType="Map" resultType="Map">
+  SELECT t.*
+	FROM WEBTV.EB_PERSON_BEHAVLOG_8 t
+  where t.LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
+  and t.LOGTIME&lt;=#{eDate,jdbcType=TIMESTAMP}
+  and param3 like 'app%'   	
+  </select>
   <select id="queryBehavLog9"  parameterType="Map" resultType="Map">
   SELECT t.*
 	FROM WEBTV.EB_PERSON_BEHAVLOG_9 t
@@ -51,7 +58,8 @@
   	param3 in(${qparam3}) 
   	<if test="qs3!=null">
   	or S3 in(${qs3})
-  	</if>
+  	</if>  	
+  	OR param3 like 'app%' OR S3 like 'more%'  	
   	)
   	</if>
   </select>
@@ -60,6 +68,7 @@
 	FROM WEBTV.EB_PERSON_BEHAVLOG_10 t
   where t.LOGTIME >= #{sDate,jdbcType=TIMESTAMP}
   and t.LOGTIME&lt;=#{eDate,jdbcType=TIMESTAMP}
+  and PERSONID is not null 
   </select>
   
   <select id="querySalesRelTelallocStat"  parameterType="Map" resultType="Map">
@@ -242,4 +251,28 @@
 	where CREATETIME >= #{sDate,jdbcType=TIMESTAMP}
 	and ROWNUM&lt;30000
   </select>
+  
+  <select id="queryEbCustpresaleInfo" parameterType="Map" resultType="Map">
+  SELECT *
+  FROM (
+	select PERSONID,
+		    B0,
+		    B1,
+		    B2,
+		    B3,
+		    BPlus,
+		    A0
+	from WEBTV.EB_CUSTPRESALE_INFO
+	where personId>#{personId,jdbcType=INTEGER}
+	AND (B0>0 or B1>0 or B2>0 or B3>0 or Bplus>0 or A0>0)		
+	ORDER BY PERSONID ASC
+  ) a
+  WHERE ROWNUM&lt;=#{rowCount,jdbcType=INTEGER}	
+  </select>
+	
+	<select id="queryPvConfPresale" parameterType="Map" resultType="Map">
+		select userid as personId,allocspeed as allocSpeed,to_char(MODIFYTIME,'YYYY-MM-DD') as speedDate
+		from WEBTV.PV_CONF_PRESALE
+		where userid in(${userIds})
+	</select>
 </mapper>
