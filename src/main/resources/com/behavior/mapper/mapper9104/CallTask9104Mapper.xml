@@ -2,11 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.behavior.mapper.mapper9104.CallTask9104Mapper" >
   <parameterMap type="Map" id="proIndex">
+    <parameter property="opId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
     <parameter property="dataType" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
     <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/>
   </parameterMap>
   <update id="updateFinMerDataSystemToday" parameterMap="proIndex" statementType="CALLABLE" >
-  {call DB_CompanyData.dbo.P_DataSystem_BankStatement_Funds_FlowDetails(?, ?)}
+  {call DB_CompanyData.dbo.P_DataSystem_BankStatement_Funds_FlowDetails(?, ?, ?)}
   </update> 
   <select id="updateFinMerDataSystemFlowDetails" parameterType="Map" resultType="String">
     if(OBJECT_ID('tempdb..#tempData') is not null)

@@ -17,7 +17,7 @@ public interface CallTask9104Mapper {
 	 * @param update 条件参数
 	 * @return
 	 */
-	int updateFinMerDataSystemToday(Map<Object, Object> update);
+	int updateFinMerDataSystemToday(Map<Object,Object> update);
 
 	/**
 	 * 更新财务流水数据

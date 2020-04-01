@@ -34,6 +34,7 @@ public class WorkCallFinMerDataSystemNotify extends WorkJob {
 		CallTask9104Mapper ct9104 = bm.getMapper(CallTask9104Mapper.class);
 		//执行本日数据处理
 		Map<Object,Object> param = new HashMap<>(5);
+		param.put("opId",2021394);
 		param.put("dataType",1);
 		ct9104.updateFinMerDataSystemToday(param);
 		log.info("财务处理结果,"+param);
