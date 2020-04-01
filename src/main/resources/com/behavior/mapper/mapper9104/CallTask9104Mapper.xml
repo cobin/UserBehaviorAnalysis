@@ -11,18 +11,18 @@
   <select id="updateFinMerDataSystemFlowDetails" parameterType="Map" resultType="String">
     if(OBJECT_ID('tempdb..#tempData') is not null)
         drop table #tempData
-    create table #tempData (rId int ,flowRid int);
+    create table #tempData (rId int ,flowRid int,branch int);
     <foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
       insert into #tempData values
       <foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
-        (${mapV.rId},${mapV.flowRid})
+        (${mapV.rId},${mapV.flowRid},${mapV.branch})
       </foreach>
     </foreach>
     if(OBJECT_ID('tempdb..#flowDetails') is not null)
         drop table #flowDetails
-    create table #flowDetails (rId int ,flowRid int,primary key(rId,flowRid));
+    create table #flowDetails (rId int ,flowRid int,branch int,primary key(rId,flowRid,branch));
     insert into #flowDetails
-    select distinct rId,flowRid
+    select distinct rId,flowRid,branch
     from #tempData
 
     DECLARE	 @errMsg varchar(1024)
@@ -42,5 +42,9 @@
   <select id="getFinMerDataSystemFlowDetail" parameterType="map" resultType="map">
     SELECT a.rId,a.flowRid,a.claim
     FROM DB_CompanyData.dbo.Fin_Mer_DataSystem_FlowDetails a
+  </select>
+  <select id="getFinMerDataSystemFlowDetailBranch" parameterType="map" resultType="map">
+    SELECT a.rId,a.flowRid,a.claim
+    FROM DB_CompanyData.dbo.Fin_Mer_DataSystem_FlowDetails_Branch a
   </select>
 </mapper>
