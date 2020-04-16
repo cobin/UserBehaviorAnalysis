@@ -103,6 +103,7 @@
     AND eb.isnewbefore = 1
     AND ti.ReturnType = 0
     AND ti.xPayStatus = 3
+    AND ti.PayInfo&lt;>''
     GROUP BY eb.KeeperId
 
     IF OBJECT_ID('tempdb..#resultOra') IS NOT NULL --分号数据
@@ -138,9 +139,299 @@
     LEFT JOIN #resultOra aa ON aa.personId=b.PersonId
     LEFT JOIN #transUser c ON c.KeeperId = b.personId
     where
-        b.RegionType IN (${adeptId})
-      or
+      (  b.RegionType IN (${adeptId})
+        or
         b.ADeptId IN (${adeptId})
+       )
     ORDER BY b.ADeptId,b.AGroupId, b.PersonId
   </select>
+
+  <!--
+      获取历史小单轮次各个产品第N日成单率
+      qType = 1 电商 2 小单部 3 大团队整体
+   -->
+  <select id="getHistoryActProductRate" parameterType="map" resultType="map">
+    <![CDATA[
+    DECLARE @qType INT  = ${nType}
+    DECLARE @fromWhere varchar(10) = '${fromWhere}'
+    IF(OBJECT_ID('tempdb..#actInfo') IS NOT NULL)
+        DROP TABLE #actInfo
+    SELECT DISTINCT FORMAT(StartDate,'yyyyMMdd') AS startDate
+        ,FORMAT(EndDate,'yyyyMMdd') AS endDate
+        ,actId AS actId
+        ,CASE WHEN a.ActName LIKE '电商%' THEN 1
+              WHEN a.ActName LIKE '小单部%' THEN 2
+              ELSE 3 END AS actFlag
+    INTO #actInfo
+    FROM  [DB_WebNerveData].[dbo].[_Mission_Act_Info]  a
+    WHERE a.ActType=1
+        AND ((a.ActName LIKE '%电商%' AND @qType=1) OR (a.ActName LIKE '%小单部%' AND @qType=2) OR (a.ActName LIKE '%小单开新%' AND @qType=3))
+        AND a.StartDate>='2019-02-26' --360小单开新
+
+    IF(OBJECT_ID('tempdb..#transUsers') IS NOT NULL)
+        DROP TABLE #transUsers
+    SELECT DISTINCT eb.tryNerveId AS personId,FORMAT(ti.xLastPayTime,'yyyyMMdd') AS payOrgDate,eb.keeperId
+        ,CASE WHEN DATEPART(w,ti.xLastPayTime)<7 THEN FORMAT(ti.xLastPayTime,'yyyyMMdd')
+              ELSE FORMAT(DATEADD(DAY,1,CAST(ti.xLastPayTime AS VARCHAR(10))),'yyyyMMdd') END AS payDate
+    INTO #transUsers
+    FROM DBNERVE.dbo._Trans_Index ti
+    INNER JOIN DBNERVE.dbo._Trans_CustomerRelation_EB eb
+        ON ti.TransId = eb.TransId
+    LEFT JOIN DBNERVE.dbo._ProductSuit ps
+        ON ti.ProductSuitId = ps.ProductSuitId
+    WHERE
+        ti.PayInfo<>''
+        AND ti.xLastPayTime >= '2019-01-01'
+        AND eb.Valid = 1
+        AND ps.ProductCateTypeId = 1
+        AND eb.isnewbefore = 1
+        AND ti.ReturnType = 0
+
+    IF(OBJECT_ID('tempdb..#personLogTmp') IS NOT NULL)
+        DROP TABLE #personLogTmp
+    SELECT  b.actId, a.DOMAIN,a.PERSONID,ISNULL(c.keeperId,a.NEWKEEPERID) AS NEWKEEPERID,c.KeeperId
+        ,CASE WHEN a.DOMAIN='jd' THEN 'WAP' ELSE a.FROMWHERE END as fromWhere
+        ,a.SDATE,b.startDate,b.endDate,0 isNerver,0 payDate
+    INTO #personLogTmp
+    FROM [BD_UserNT].[dbo].[_Eb_Person_Keeper_Log_10] a
+    INNER JOIN #actInfo b ON  a.SDATE>=b.startDate AND a.SDATE<=b.endDate
+    LEFT JOIN #transUsers c ON c.personId=a.PERSONID
+    WHERE a.isValid=1 AND a.DOMAIN IS NOT NULL
+
+    IF(OBJECT_ID('tempdb..#personLog') IS NOT NULL)
+        DROP TABLE #personLog
+    SELECT a.*,c.RegionType,c.DeptId,c.RegionCenter,c.GroupId
+    INTO #personLog
+    FROM #personLogTmp a
+    INNER JOIN DB_WebNerveData.[dbo].[_Mission_KPI_360_Class_Trans] c ON a.actId=c.ActId AND c.UnitType=4 AND c.SourceId=0 AND a.NEWKEEPERID = c.UnitId
+
+    IF(OBJECT_ID('tempdb..#payDayTrans') IS NOT NULL)
+        DROP TABLE #payDayTrans
+
+    SELECT *,ROW_NUMBER() OVER(PARTITION BY a.actId,a.SDATE ORDER BY a.nDays) AS nNowDays
+    INTO #payDayTrans
+    FROM(
+        SELECT a.actId,a.sDate
+            ,DATEDIFF(DAY,CAST(a.SDATE AS VARCHAR(10)), CAST(b.SDATE AS VARCHAR(10))) AS nDays
+        FROM (
+            SELECT DISTINCT a.actId, a.SDATE
+            FROM #personLog a
+        ) a
+        INNER JOIN (
+            SELECT DISTINCT a.actId, a.SDATE
+            FROM #personLog a
+        ) b ON a.actId=b.actId AND a.SDATE<=b.SDATE
+    ) a
+    ORDER BY a.actId,a.SDATE,a.nDays
+
+    if(isnull(@fromWhere,'ALL') in('WAP','PC'))
+    begin
+    DELETE FROM #personLog WHERE FROMWHERE !=@fromWhere
+    end
+
+    UPDATE a
+    SET a.isNerver = 1,a.payDate = b.bpayDate
+    from #personLog a
+    INNER JOIN (
+        SELECT DISTINCT a.*, b.payDate AS bPayDate
+        FROM #personLog a
+        INNER JOIN #transUsers b ON a.PERSONID=b.PersonId AND b.payDate>=a.startDate AND b.payDate <=a.endDate
+    ) b ON a.PERSONID=b.PERSONID AND a.actId=b.actId
+
+    IF(OBJECT_ID('tempdb..#config') IS NOT NULL)
+        DROP TABLE #config
+    CREATE TABLE #config(actId INT,startDate INT ,endDate INT,nextStartDate INT ,actName VARCHAR(100),PRIMARY KEY(actId,startDate))
+    IF(@qType=1)
+        INSERT INTO #config
+        VALUES
+            (98,20190316,20190403,20190408,'360/260'),(98,20190408,20190426,20190426,'180')
+            ,(109,20190722,20190811,20190812,'360/260'),(109,20190812,20190906,20190906,'180')
+            ,(113,20190909,20190930,20190930,'360/260')
+            ,(117,20191010,20191031,20191102,'180'),(117,20191102,20191115,20191115,'100')
+            ,(122,20191118,20191130,20191130,'180')
+            ,(125,20191201,20191231,20191231,'100')
+            ,(130,20200102,20200123,20200123,'360/260')
+            ,(136,20200308,20200417,20200417,'180')
+    ELSE IF(@qType=2)
+        INSERT INTO #config
+        VALUES(110,20190722,20190811,20190812,'360/260'),(110,20190812,20190906,20190906,'180')
+            ,(114,20190909,20190930,20190930,'360/260')
+            ,(118,20191010,20191031,20191102,'180'),(118,20191102,20191115,20191115,'100')
+            ,(123,20191118,20191130,20191130,'180')
+            ,(126,20191201,20191231,20191231,'100')
+            ,(131,20200102,20200123,20200123,'360/260')
+            ,(135,20200308,20200417,20200417,'180')
+    ELSE
+        INSERT INTO #config
+        VALUES(97,20190316,20190403,20190408,'360/260'),(97,20190408,20190426,20190426,'180')
+            ,(108,20190722,20190811,20190812,'360/260'),(108,20190812,20190906,20190906,'180')
+            ,(112,20190909,20190930,20190930,'360/260')
+            ,(115,20191010,20191031,20191102,'180'),(115,20191102,20191115,20191115,'100')
+            ,(121,20191118,20191130,20191130,'180')
+            ,(129,20200102,20200123,20200123,'360/260')
+
+    IF(OBJECT_ID('tempdb..#tmpData') IS NOT NULL)
+        DROP TABLE #tmpData
+    SELECT 0 AS unitId, a.actId,a.PERSONID,a.NEWKEEPERID,a.SDATE,a.startDate,a.endDate,a.isNerver,a.payDate,a.RegionType,a.DeptId
+        ,b.actName,b.startDate as subStartDate,b.endDate AS subEndDate
+        ,CASE WHEN DATEPART(w,CAST(b.nextStartDate AS VARCHAR(10)))=7 THEN FORMAT(DATEADD(DAY,1,CAST(b.nextStartDate AS VARCHAR(10))),'yyyyMMdd') ELSE b.nextStartDate END  AS nextStartDate
+    INTO #tmpData
+    FROM #personLog a
+    INNER JOIN #config b ON a.actId=b.actId AND a.SDATE>=b.startDate AND a.SDATE<=b.endDate
+    ORDER BY a.actId,a.SDATE
+
+    INSERT INTO  #tmpData
+    SELECT a.RegionType, a.actId,a.PERSONID,a.NEWKEEPERID,a.SDATE,a.startDate,a.endDate,a.isNerver,a.payDate,a.RegionType,a.DeptId
+        ,a.actName,a.subStartDate,a.subEndDate,a.nextStartDate
+    FROM #tmpData a
+    WHERE unitId = 0
+
+    INSERT INTO  #tmpData
+    SELECT a.DeptId, a.actId,a.PERSONID,a.NEWKEEPERID,a.SDATE,a.startDate,a.endDate,a.isNerver,a.payDate,a.RegionType,a.DeptId
+        ,a.actName,a.subStartDate,a.subEndDate,a.nextStartDate
+    FROM #tmpData a
+    WHERE unitId=0
+
+    IF(OBJECT_ID('tempdb..#allSource') IS NOT NULL)
+        DROP TABLE #allSource
+    ;WITH tmpData AS (
+        SELECT unitId, a.actName,a.SDATE,COUNT(*) AS totalResource ,ROW_NUMBER() OVER(PARTITION BY a.actName ORDER BY a.SDATE) AS rowId
+        FROM ( SELECT a.unitId,a.actName ,a.SDATE,PERSONID FROM #tmpData a )a
+        GROUP BY a.actName,a.SDATE,a.unitId
+        HAVING COUNT(*)>10
+    )
+    SELECT a.unitId,a.actName,a.totalResource,ROW_NUMBER() OVER(PARTITION BY a.unitId, a.actName ORDER BY a.rowId DESC) AS rowId
+    INTO #allSource
+    FROM(
+        SELECT a.unitId, a.actName,b.rowId,SUM(a.totalResource) AS totalResource
+        FROM tmpData a
+        LEFT JOIN  tmpData b ON a.unitId=b.unitId and a.actName = b.actName AND a.rowId<=b.rowId
+        GROUP BY a.unitId, a.actName,b.rowId
+    ) a ;
+
+    IF(OBJECT_ID('tempdb..#all') IS NOT NULL)
+        DROP TABLE #all,#one,#two
+
+    SELECT b.*,a.totalResource,b.countAll*1.0/a.totalResource AS rate
+    INTO #All
+    FROM #allSource a
+    INNER JOIN (
+        SELECT a.unitId, a.actName,b.nNowDays AS nDays,SUM(a.nCount) AS countAll
+        FROM(
+            SELECT a.unitId, a.actId,a.actName,a.SDATE,DATEDIFF(DAY,CAST(sdate AS VARCHAR(10)),CAST(a.payDate AS VARCHAR(10))) AS nDays,nCount
+            FROM(
+                SELECT a.unitId, a.actId,a.actName,a.sdate,a.payDate,COUNT(*) AS nCount
+                FROM #tmpData a
+                WHERE a.payDate>0
+                GROUP BY a.actId,a.actName, a.sdate,a.payDate,a.unitId
+            ) a
+        ) a
+        INNER JOIN #payDayTrans b ON a.actId=b.actId AND a.SDATE=b.SDATE AND a.nDays=b.nDays
+        GROUP BY a.unitId, a.actName,b.nNowDays
+    ) b ON a.actName=b.actName AND a.rowId=b.nDays AND a.unitId=b.unitId
+    ORDER BY b.actName,b.nDays
+
+    SELECT b.*,a.totalResource,b.countAll*1.0/a.totalResource AS rate
+    INTO #one
+    FROM #allSource a
+    INNER JOIN (
+        SELECT a.unitId ,a.actName,b.nNowDays  AS nDays,SUM(a.nCount) AS countAll
+        FROM(
+            SELECT a.unitId, a.actId,a.actName,a.SDATE,DATEDIFF(DAY,CAST(sdate AS VARCHAR(10)),CAST(a.payDate AS VARCHAR(10))) AS nDays,nCount
+            FROM(
+                SELECT a.unitId, a.actId,a.actName,a.sdate,a.payDate,COUNT(*) AS nCount
+                FROM #tmpData a
+                WHERE a.payDate>0 AND a.payDate>=a.subStartDate AND a.payDate<=a.subEndDate
+                GROUP BY a.actId,a.actName, a.sdate,a.payDate,a.unitId
+            ) a
+        ) a
+        INNER JOIN #payDayTrans b ON a.actId=b.actId AND a.SDATE=b.SDATE AND a.nDays=b.nDays
+        GROUP BY a.actName,b.nNowDays,a.unitId
+    ) b ON a.actName=b.actName AND a.rowId=b.nDays AND a.unitId=b.unitId
+    ORDER BY b.unitId,b.actName,b.nDays
+
+
+    SELECT b.*,a.totalResource,b.countAll*1.0/a.totalResource AS rate
+    INTO #two
+    FROM
+    (
+        SELECT a.unitId, a.actName ,COUNT(*) AS totalResource
+        FROM (
+            SELECT a.unitId,a.actName ,PERSONID ,a.subEndDate,a.endDate
+            FROM #tmpData a
+            WHERE a.subEndDate<a.endDate
+        )a
+        GROUP BY a.actName ,a.unitId
+    ) a
+    INNER JOIN (
+        SELECT a.unitId, a.actName,b.nNowDays AS nDays,SUM(a.nCount) AS countAll
+        FROM(
+            SELECT a.unitId, a.actId,a.actName,a.SDATE,DATEDIFF(DAY,CAST(sdate AS VARCHAR(10)),CAST(a.payDate AS VARCHAR(10))) AS nDays,nCount
+            FROM(
+                SELECT a.unitId, a.actId, a.actName,a.nextStartDate AS sdate,a.payDate,COUNT(*) AS nCount
+                FROM #tmpData a
+                WHERE a.payDate>=a.nextStartDate
+                GROUP BY a.actId,a.actName, a.nextStartDate,a.payDate,a.unitId
+            ) a
+        ) a
+        INNER JOIN #payDayTrans b ON a.actId=b.actId AND a.SDATE=b.SDATE AND a.nDays=b.nDays
+        GROUP BY a.actName,b.nNowDays,a.unitId
+    ) b ON a.actName=b.actName AND a.unitId=b.unitId
+    ORDER BY b.unitId,b.actName,b.nDays
+
+    IF(OBJECT_ID('tempdb..#outData') IS NOT NULL)
+        DROP TABLE #outData
+    SELECT a.unitId,a.actName,ROW_NUMBER() OVER(PARTITION BY a.unitId, a.actName ORDER BY a.nDays) AS rowId,a.nDays,a.rate AS allRate,ISNULL(b.rate,0) AS oneRate,ISNULL(c.rate,0) AS twoRate
+    INTO #outData
+    FROM #All a
+    LEFT JOIN #one b ON a.actName=b.actName AND a.nDays=b.nDays AND a.unitId=b.unitId
+    LEFT JOIN #two c ON a.actName=c.actName AND a.nDays=c.nDays AND a.unitId=c.unitId
+    ORDER BY a.unitId,a.actName,a.nDays
+
+    SELECT concat(unitId,'_',actName) as actName
+        ,cast(rowId as int) as rowId
+        ,cast(nDays as int) as nDays
+        ,allRate,oneRate,twoRate
+    FROM #outData
+    ORDER BY unitId,actName,rowId
+    ]]>
+  </select>
+  <select id="getMissionActInfoById" parameterType="map" resultType="map">
+    SELECT a.*,b.personCount
+    FROM(
+        SELECT DISTINCT actId,actName,startDate,endDate,lockDate
+        FROM DB_WebNerveData.dbo._Mission_Act_Info
+        WHERE ActType=1 AND ActId=#{actId}
+    ) a
+    INNER JOIN (
+        SELECT a.ActId,COUNT(*) AS personCount
+        FROM DB_WebNerveData.dbo._Mission_KPI_360_Class_Trans a
+        WHERE ActId=#{actId} AND a.UnitType=4 AND a.SourceId=0
+        GROUP BY a.ActId
+    ) b ON a.ActId = b.ActId
+  </select>
+  <select id="getMissionActUnits" parameterType="map" resultType="integer">
+   <![CDATA[
+    select unitId
+    from(
+      SELECT DISTINCT unitId
+      FROM DB_WebNerveData.dbo._Mission_KPI_360_Class_Trans a
+      WHERE a.ActId=#{actId} AND a.UnitType<3 AND a.SourceId=0 and unitId not in(1,4)
+      UNION
+      SELECT 0
+     ) a
+     order by unitId
+    ]]>
+  </select>
+  <update id="updateForecastData" parameterType="map">
+    create table #forecastData(unitId int ,unitType int,actId int,sDate int ,wap_orderRate float null,pc_orderRate float null,primary key(unitId,unitType,actId,sDate));
+    insert into #forecastData values
+    <foreach collection="traceList" index="index" item="mapV" open="" separator="," close="">
+      (${mapV.unitId},${mapV.unitType},${mapV.actId},${mapV.sDate},${mapV.wapOrderRate},${mapV.pcOrderRate})
+    </foreach>;
+    declare @errMsg varchar(100)
+    EXEC [dbo].[P_PlatForm_360WapNewResource_Order_WorkCall_B_Daily_Scheduler]
+        @actId = 909090,
+        @errMsg=@errMsg output
+  </update>
 </mapper>

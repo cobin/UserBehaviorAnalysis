@@ -35,6 +35,8 @@ public class WorkCallSalesOverallReport360Notify extends WorkJob {
 		log.info(TAG+">调用定时收集电商部中控信息："+qParam);
 		ct9103.updateUpgradeControlCenterAll360XDData(qParam); 
 		log.info(TAG+">调用定时收集小单部中控信息："+qParam);
+		ct9103.updateUpgradeControlCenterAll360TDData(qParam);
+		log.info(TAG+">调用定时收集大团队中控信息："+qParam);
 	}
 	
 }

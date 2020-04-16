@@ -5,4 +5,5 @@ import java.util.Map;
 public interface CallTask9103Mapper {
 	int updateUpgradeControlCenterAll360DSData(Map<Object, Object> update);
 	int updateUpgradeControlCenterAll360XDData(Map<Object, Object> update);
+	int updateUpgradeControlCenterAll360TDData(Map<Object, Object> update);
 }

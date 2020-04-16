@@ -11,5 +11,8 @@
   </update> 
   <update id="updateUpgradeControlCenterAll360XDData" parameterMap="proIndex" statementType="CALLABLE" >  
   {call DB_CompanyData.dbo.P_UpgradeControlCenter_All_360XD_Data_Interface(?,?, ?)}
-  </update> 
+  </update>
+  <update id="updateUpgradeControlCenterAll360TDData" parameterMap="proIndex" statementType="CALLABLE" >
+  {call DB_CompanyData.dbo.P_UpgradeControlCenter_All_360TD_Data_Interface(?,?, ?)}
+  </update>
 </mapper>

@@ -5,6 +5,9 @@ import static org.junit.Assert.assertTrue;
 import com.cobin.util.Tools;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Unit test for simple App.
  */
@@ -30,5 +33,18 @@ public class AppTest
         strVs = Tools.regExPickUp("退款-对应流水[124194]","退款[^\\d]{4,10}\\[([\\d]+)\\]");
         for(String v:strVs)
             System.out.println(v);
+    }
+
+    @Test
+    public void testArray(){
+        List<Integer> testList = new ArrayList<>();
+        for(int i = 100;i<(50000*Math.random());i++){
+            testList.add(i);
+        }
+        System.out.println(testList.size());
+        for(int i=0;i<testList.size()/100+1;i++){
+            int endIndex = Math.min((i+1)*100,testList.size());
+            System.out.println(testList.subList(i*100,endIndex));
+        }
     }
 }
