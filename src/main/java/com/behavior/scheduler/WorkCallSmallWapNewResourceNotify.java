@@ -29,7 +29,7 @@ public class WorkCallSmallWapNewResourceNotify extends WorkJob {
 
 	@Override
 	public void execWork(BehaviorMain bm,String sdate ){	
-//		CDate c = new CDate("2019-10-09");	
+//		CDate c = new CDate("2019-10-09");
 //		for(;;) {
 			CallTask1114Mapper ct1113 = bm.getMapper(CallTask1114Mapper.class);
 			List<Map<String,Integer>> acts = ct1113.getSmallOrderWapActInfo();

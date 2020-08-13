@@ -369,4 +369,50 @@
 		  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="myDataSource9104" />
 	</bean>
+
+	<!-- 9105 财务报表数据配置 -->
+
+	<bean id="myDataSource9105" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias9105}"></property>
+		<property name="delegateProperties"><value>user=${jdbc.username9105},password=${jdbc.password9105}</value></property>
+		<property name="user" value="${jdbc.username9105}"/>
+		<property name="password" value="${jdbc.password9105}"/>
+		<property name="driver" value="${jdbc.driverClassName9105}"/>
+		<property name="driverUrl" value="${jdbc.url9105}"/>
+		<property name="houseKeepingTestSql" value="${jdbc.query9105}"></property>
+	</bean>
+	<bean id="sqlSessionFactory9105" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource9105" />
+	</bean>
+	<bean id="scannerConfigurer9105" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory9105"/>
+		<property name="basePackage" value="com.behavior.mapper.mapper9105" />
+	</bean>
+	<bean id="transactionManager9105"
+		  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource9105" />
+	</bean>
+
+	<!-- 131 课程列表数据配置 -->
+
+	<bean id="myDataSource131" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias131}"></property>
+		<property name="delegateProperties"><value>user=${jdbc.username131},password=${jdbc.password131}</value></property>
+		<property name="user" value="${jdbc.username131}"/>
+		<property name="password" value="${jdbc.password131}"/>
+		<property name="driver" value="${jdbc.driverClassName131}"/>
+		<property name="driverUrl" value="${jdbc.url131}"/>
+		<property name="houseKeepingTestSql" value="${jdbc.query131}"></property>
+	</bean>
+	<bean id="sqlSessionFactory131" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource131" />
+	</bean>
+	<bean id="scannerConfigurer131" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory131"/>
+		<property name="basePackage" value="com.behavior.mapper.mapper131" />
+	</bean>
+	<bean id="transactionManager131"
+		  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource131" />
+	</bean>
 </beans>

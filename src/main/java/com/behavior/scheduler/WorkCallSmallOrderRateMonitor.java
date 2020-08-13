@@ -49,16 +49,17 @@ public class WorkCallSmallOrderRateMonitor extends WorkJob {
             CallTask1114Mapper ct1114 = bm.getMapper(CallTask1114Mapper.class);
             //电商,小单部，大团队 1 WAP,2 PC,3 ALL
             // actId = 140 ,141 ,139
-            int[] actIds = {140 ,141 ,139};
+            int[] actIds = {1,140 ,2,141 ,3,139};
             List<Map<Object,Object>> traceList = new ArrayList<>();
-            for(int nType=0;nType<actIds.length;nType++) {
-                int actId = actIds[nType];
+            for(int nType=0;nType<actIds.length;nType+=2) {
+                int actType = actIds[nType];
+                int actId = actIds[nType+1];
                 List<Integer> units = ct1114.getMissionActUnits(actId);
                 int fromWhere = 1;
                 List<Integer[]> nDateList = getActDateList(ct1114,actId);
-                Map<String,List<Map<String,Object>>> dsResult = getHistoryActOrderRate(ct1114,nType+1,fromWhere==1?"WAP":"PC");
+                Map<String,List<Map<String,Object>>> dsResult = getHistoryActOrderRate(ct1114,actType,fromWhere==1?"WAP":"PC");
                 for(Integer unit:units){
-                    log.info(String.format("%d,,,%d,,,,%d",actId,unit,nType+1));
+                    log.info(String.format("%d,,,%d,,,,%d",actId,unit,actType));
                     execActMonitorRate(nDateList,dsResult,traceList,actId,unit,fromWhere);
                 }
                 int totalSize = traceList.size();
@@ -72,7 +73,7 @@ public class WorkCallSmallOrderRateMonitor extends WorkJob {
         }
 
         private void execActMonitorRate(List<Integer[]> nDateList,Map<String,List<Map<String,Object>>> dsResult,List<Map<Object,Object>> traceList,int actId,int deptId,int fromWhere){
-            List<Map<String,Object>> p360 = dsResult.get(deptId+"_360/260");
+            List<Map<String,Object>> p360 = dsResult.get(deptId+"_260");
             if(p360==null){
                 log.error("无历史数据参考>>"+actId+","+deptId+","+fromWhere);
                 return;

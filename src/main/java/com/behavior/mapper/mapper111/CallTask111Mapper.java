@@ -95,5 +95,13 @@ public interface CallTask111Mapper {
 	List<Map<Object, Object>> queryEbCustpresaleInfo(@Param("sPersonId") int sPersonId,@Param("ePersonId") int ePersonId);
 	int insertEbCustpresaleInfo(@Param("traceList") List<List<Map<Object,Object>>> traceList);
 	int updateEbCustpresaleInfo(@Param("traceList") List<List<Map<Object,Object>>> traceList);
-	
+
+
+	int updateCmsCourse(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+	int updateCourseProperty(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+
+	int getVotesMaxId();
+	int getVoteItemsMaxId();
+	int updateVotes(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+	int updateVoteItems(@Param("traceList") List<List<Map<Object,Object>>> traceList);
 }

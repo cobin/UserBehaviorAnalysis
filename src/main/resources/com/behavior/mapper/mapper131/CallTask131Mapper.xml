@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper131.CallTask131Mapper" >
+  <select id="queryCmsCourse" parameterType="map" resultType="map" >
+  SELECT [courseId]
+      ,[title]
+      ,[date]
+      ,[startTime]
+      ,[endTime]
+      ,[company]
+      ,[roomId]
+      ,[roomName]
+      ,[teacher]
+      ,[enabled]
+  FROM [DB_OfficialWeb].[dbo].[cms_course]
+  WHERE DATEDIFF(DAY,[date],#{sDate})&lt;0
+  </select>
+  <select id="queryCourseProperty" resultType="java.util.Map" parameterType="map">
+    SELECT  a.courseId,a.userLevel,a.property
+    FROM [DB_OfficialWeb].[dbo].[cms_course_property] a
+    INNER JOIN [DB_OfficialWeb].[dbo].[cms_course] b ON a.courseId = b.courseId
+    WHERE DATEDIFF(DAY,[date],#{sDate})&lt;0
+  </select>
+
+  <select id="queryVotes" resultType="java.util.Map">
+      SELECT [id]
+          ,[title]
+          ,[type]
+          ,[levels]
+          ,[enabled]
+          ,[start]
+          ,[end]
+          ,[tags]
+          ,[multiple]
+          ,[addPerson]
+          ,[addPersonName]
+          ,[addTime]
+          ,[modifyPerson]
+          ,[modifyPersonName]
+          ,[modifyTime]
+      FROM [DB_OfficialWeb].[dbo].[_votes] a
+      where a.id>#{id}
+  </select>
+
+  <select id="queryVoteItems" resultType="java.util.Map">
+    SELECT [id]
+          ,[voteid]
+          ,[pid]
+          ,[content]
+          ,[color]
+          ,[score]
+          ,[type]
+          ,[enabled]
+          ,[counts]
+          ,[sums]
+          ,[right]
+          ,[jumpto]
+          ,[notrequired]
+          ,[orderindex]
+          ,[addperson]
+          ,[addtime]
+          ,[modifyperson]
+          ,[modifytime]
+          ,[rightanswer]
+          ,[picture]
+          ,[tag_name]
+          ,[tag_value]
+      FROM [DB_OfficialWeb].[dbo].[_vote_items] a
+      where a.id>#{id}
+  </select>
+
+
+</mapper>

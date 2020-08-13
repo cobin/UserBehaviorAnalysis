@@ -1890,7 +1890,7 @@
     where PERSONID>=#{sPersonId,jdbcType=INTEGER}
     	and PERSONID&lt;=#{ePersonId,jdbcType=INTEGER}
     order by PERSONID
-  </select> 
+  </select>
   
   <insert id="insertEbCustpresaleInfo" parameterType="Map">  
 	declare @tmpData table(
@@ -1971,5 +1971,267 @@
 		,T.addDate = GetDate()
 	;   	 
   </update>
-  
+
+  <update id="updateCmsCourse" parameterType="Map">
+	declare @tmpData table(
+  	   	[courseId] [INT] NOT NULL,
+        [title] [NVARCHAR](255) NULL,
+        [date] [DATE] NULL,
+        [startTime] [TIME](0) NULL,
+        [endTime] [TIME](0) NULL,
+        [company] [TINYINT] NULL,
+        [roomId] [INT] NULL,
+        [roomName] [NVARCHAR](255) NULL,
+        [teacher] [NVARCHAR](255) NULL,
+        [enabled] [TINYINT] NULL,
+        PRIMARY KEY(courseId)
+  	);
+
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.courseId},${mapV.title},${mapV.date},${mapV.startTime},${mapV.endTime},
+		  	${mapV.company},${mapV.roomId},${mapV.roomName},${mapV.teacher},${mapV.enabled}
+	  	)
+	  	</foreach>;
+  	</foreach>
+
+  	MERGE INTO [BD_UserNT].[dbo].[cms_course] AS T
+	USING @tmpData AS S
+	ON T.courseId=S.courseId
+	WHEN MATCHED THEN UPDATE SET
+		T.title = S.title
+		,T.date = S.date
+		,T.startTime = S.startTime
+		,T.endTime = S.endTime
+		,T.company = S.company
+		,T.roomId = S.roomId
+		,T.roomName=S.roomName
+		,T.teacher =S.teacher
+		,T.enabled = S.enabled
+	WHEN NOT MATCHED THEN
+		INSERT (courseId,
+           title,date,
+           startTime, endTime,
+           company, roomId,roomName,teacher,enabled
+        )
+		VALUES(S.courseId,
+           S.title,
+           S.date,
+           S.startTime,
+           S.endTime,
+           S.company,
+           S.roomId,S.roomName,S.teacher,S.enabled);
+	;
+  </update>
+
+  <update id="updateCourseProperty" parameterType="Map">
+	declare @tmpData table(
+  	   	[courseId] [INT] NOT NULL,
+        [userLevel] [SMALLINT] NOT NULL,
+        [property] [TINYINT] NULL,
+        PRIMARY KEY(courseId,userLevel)
+  	);
+
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.courseId},${mapV.userLevel},${mapV.property}
+	  	)
+	  	</foreach>;
+  	</foreach>
+
+  	MERGE INTO [BD_UserNT].[dbo].[cms_course_property] AS T
+	USING @tmpData AS S
+	ON T.courseId=S.courseId and T.userLevel=S.userLevel
+	WHEN MATCHED THEN UPDATE SET
+		T.property = S.property
+	WHEN NOT MATCHED THEN
+		INSERT (courseId,
+           userLevel,property
+        )
+		VALUES(S.courseId,
+           S.userLevel,
+           S.property);
+	;
+  </update>
+
+  <select id="getVotesMaxId" resultType="java.lang.Integer">
+    SELECT MAX([id])
+    FROM BD_UserNT.[dbo].[votes]
+  </select>
+
+  <select id="getVoteItemsMaxId" resultType="java.lang.Integer">
+    SELECT MAX([id])
+    FROM BD_UserNT.[dbo].[vote_items]
+  </select>
+
+  <update id="updateVotes" parameterType="Map">
+	 CREATE TABLE #votes(
+        id INT NOT NULL,
+        title VARCHAR(500) NULL,
+        [enabled] INT NULL,
+        [start] DATETIME NULL,
+        [end] DATETIME NULL,
+        addPerson INT NULL,
+        addPersonName VARCHAR(50) NULL,
+        addTime DATETIME NULL,
+        modifyPerson INT NULL,
+        modifyPersonName VARCHAR(50) NULL,
+        modifyTime DATETIME NULL,
+        [type] INT NULL,
+        PRIMARY KEY ( id  )
+     );
+
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into #votes values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.id},${mapV.title},${mapV.enabled},${mapV.start},${mapV.end},${mapV.addPerson},${mapV.addPersonName}
+		  	,${mapV.addTime},${mapV.modifyPerson},${mapV.modifyPersonName},${mapV.modifyTime},${mapV.type}
+	  	)
+	  	</foreach>;
+  	</foreach>
+
+  	MERGE INTO [BD_UserNT].[dbo].[votes] AS T
+	USING #votes AS S
+	ON T.id=S.id
+	WHEN MATCHED THEN UPDATE SET
+		  T.title = S.title
+          ,T.[type] = S.[type]
+          ,T.[enabled] = S.[enabled]
+          ,T.[start] = S.[start]
+          ,T.[end] = S.[end]
+          ,T.addPerson = S.addPerson
+          ,T.addPersonName = S.addPersonName
+          ,T.addTime = S.addTime
+          ,T.modifyPerson = S.modifyPerson
+          ,T.modifyPersonName = S.modifyPersonName
+          ,T.modifyTime = S.modifyTime
+	WHEN NOT MATCHED THEN
+		INSERT (id
+		    ,[title]
+           ,[type]
+           ,[enabled]
+           ,[start]
+           ,[end]
+           ,[addPerson]
+           ,[addPersonName]
+           ,[addTime]
+           ,[modifyPerson]
+           ,[modifyPersonName]
+           ,[modifyTime]
+        )
+		VALUES(S.id
+		    ,S.title
+            ,S.[type]
+            ,S.[enabled]
+            ,S.[start]
+            ,S.[end]
+            ,S.addPerson
+            ,S.addPersonName
+            ,S.addTime
+            ,S.modifyPerson
+            ,S.modifyPersonName
+            ,S.modifyTime)
+	;
+  </update>
+
+  <update id="updateVoteItems" parameterType="Map">
+	CREATE TABLE #vote_items(
+        id INT NOT NULL,
+        voteid INT NULL,
+        pid INT NULL,
+        content VARCHAR(500) NULL,
+        color VARCHAR(50) NULL,
+        score INT NULL,
+        [type] INT NULL,
+        [enabled] INT NULL,
+        counts INT NULL,
+        sums INT NULL,
+        orderindex INT NULL,
+        addperson INT NULL,
+        addtime DATETIME NULL,
+        modifyperson INT NULL,
+        modifytime DATETIME NULL,
+        rightanswer VARCHAR(50) NULL,
+        tag_name VARCHAR(50) NULL,
+        tag_value INT NULL,
+        PRIMARY KEY (id)
+     );
+
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into #vote_items values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.id},${mapV.voteid},${mapV.pid},${mapV.content},${mapV.color}
+            ,${mapV.score},${mapV.type},${mapV.enabled},${mapV.counts},${mapV.sums}
+            ,${mapV.orderindex},${mapV.addperson},${mapV.addtime},${mapV.modifyperson}
+            ,${mapV.modifytime},${mapV.rightanswer},${mapV.tag_name},${mapV.tag_value}
+	  	)
+	  	</foreach>;
+  	</foreach>
+  	MERGE INTO [BD_UserNT].[dbo].[vote_items] AS T
+	USING #vote_items AS S
+	ON T.id=S.id
+	WHEN MATCHED THEN UPDATE SET
+          T.voteid = S.voteid
+          ,T.pid = S.pid
+          ,T.[content] = S.[content]
+          ,T.color = S.color
+          ,T.score = S.score
+          ,T.[type] = S.[type]
+          ,T.[enabled] = S.[enabled]
+          ,T.counts = S.counts
+          ,T.sums = S.sums
+          ,T.orderindex = S.orderindex
+          ,T.addperson = S.addperson
+          ,T.addtime = S.addtime
+          ,T.modifyperson = S.modifyperson
+          ,T.modifytime = S.modifytime
+          ,T.rightanswer = S.rightanswer
+          ,T.tag_name = S.tag_name
+          ,T.tag_value = S.tag_value
+	WHEN NOT MATCHED THEN
+		INSERT ([id]
+                ,[voteid]
+                ,[pid]
+                ,[content]
+                ,[color]
+                ,[score]
+                ,[type]
+                ,[enabled]
+                ,[counts]
+                ,[sums]
+                ,[orderindex]
+                ,[addperson]
+                ,[addtime]
+                ,[modifyperson]
+                ,[modifytime]
+                ,[rightanswer]
+                ,[tag_name]
+                ,[tag_value]
+                 )
+		VALUES(S.id
+                ,S.voteid
+                ,S.pid
+                ,S.[content]
+                ,S.color
+                ,S.score
+                ,S.[type]
+                ,S.[enabled]
+                ,S.counts
+                ,S.sums
+                ,S.orderindex
+                ,S.addperson
+                ,S.addtime
+                ,S.modifyperson
+                ,S.modifytime
+                ,S.rightanswer
+                ,S.tag_name
+                ,S.tag_value )
+	;
+  </update>
 </mapper>

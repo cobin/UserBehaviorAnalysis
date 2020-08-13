@@ -47,16 +47,18 @@ public class WorkCallSmallOrderUserInfo extends WorkJob {
             //部门编号 8198,8432 培训部门
             // 8979,8907,8565,8980,8848,9224 小单部门
             // 9183,9074,9184,9095 电商部门
-            String sDate = "2020-03-23";
-            String eDate = "2020-04-05";
+            String sDate = "2020-06-28";
+            String eDate = "2020-08-11";
             String[][] adepts ={
                     null
-                    ,{"电商部门","9183,9074,9184,9095"}
-                    ,{"小单部","8979,8907,8565,8980,8848,9224"}
-                    //,{"云集直营部","11,12,13,15"}
-                    //,{"智富直营部","41"}
-                    ,{"云集招聘培训部","8198"}
-                    ,{"智富招聘培训部","8432"}
+                    ,{"电商部门","81,84"}
+                    ,{"小单部","85,86"}
+//                    ,{"电商部门","9183,9074,9184,9095"}
+//                    ,{"小单部","8979,8907,8565,8980,8848,9224"}
+//                    ,{"云集直营部","11,12,13,15"}
+//                    ,{"智富直营部","41"}
+//                    ,{"云集招聘培训部","8198"}
+//                    ,{"智富招聘培训部","8432"}
             };
 
             File f = new File("lx"+ CDate.formatToLongDate().replaceFirst(" ","_").replaceAll(":","-")+".xls");
@@ -71,6 +73,7 @@ public class WorkCallSmallOrderUserInfo extends WorkJob {
                     WritableSheet sheet = workbook.createSheet(doDepts[0], iSheet);
                     writeExcel(sheet, xlsResult);
                     iSheet++;
+                    log.info("处理<"+doDepts[0]+">完毕。");
                 }
                 workbook.write();
                 workbook.close();
@@ -128,4 +131,10 @@ public class WorkCallSmallOrderUserInfo extends WorkJob {
                 "newResource","新号领取数","newTransNum","新单个数","b01NewTransNum","B0或B1的新单个数","specialNum","特别订单","lowerNum","低价订单",
                 "b0NewTransNum","B0的新单数","b1NewTransNum","B1的新单数","ALLOCSPEED","新号流速","SPEEDDATE","激活日期"
         } ;
+
+    public static void main(String[] args) {
+//        System.getProperties().setProperty("file.encoding","GBK");
+//        System.getProperties().setProperty("log4j.configurationFile","config/log4j2.xml");
+        new Thread(new BehaviorMain(1,WorkCallSmallOrderUserInfo.class.getSimpleName()), "BehaviorMain").start();
+    }
 }

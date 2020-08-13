@@ -27,14 +27,15 @@
 	UNION
 	SELECT 0 AS company
   </select>
-  
-  <parameterMap type="Map" id="proIndex1">
-  <parameter property="Opid" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/> 
-  <parameter property="sDate" jdbcType="VARCHAR" mode="IN" javaType="java.lang.String"/> 
-  <parameter property="unitId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/> 
-  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/> 
-  </parameterMap>
-  <update id="updateMonitorWapPc" parameterMap="proIndex1" statementType="CALLABLE" >  
-  {call BD_UserNT.dbo.P_SalesOverallReport_OverallReport360_WapPc_Monitor_Scheduler(?,?,?, ?)}
-  </update> 
+
+    <parameterMap type="Map" id="proIndex1">
+        <parameter property="Opid" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+        <parameter property="sDate" jdbcType="VARCHAR" mode="IN" javaType="java.lang.String"/>
+        <parameter property="unitId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+        <parameter property="actId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+        <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/>
+    </parameterMap>
+  <update id="updateMonitorWapPc" parameterMap="proIndex1" statementType="CALLABLE" >
+  {call BD_UserNT.dbo.P_SalesOverallReport_OverallReport360_WapPc_Monitor_Scheduler(?,?,?,?, ?)}
+  </update>
 </mapper>
