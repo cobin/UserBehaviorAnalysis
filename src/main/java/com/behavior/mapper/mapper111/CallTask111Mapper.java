@@ -99,9 +99,22 @@ public interface CallTask111Mapper {
 
 	int updateCmsCourse(@Param("traceList") List<List<Map<Object,Object>>> traceList);
 	int updateCourseProperty(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+	String getCmsUserStokMaxTime();
+	int updateCmsUserStock(@Param("traceList") List<List<Map<Object,Object>>> traceList);
 
 	int getVotesMaxId();
 	int getVoteItemsMaxId();
+	int getVoteRecordMaxId();
 	int updateVotes(@Param("traceList") List<List<Map<Object,Object>>> traceList);
 	int updateVoteItems(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+	int updateVoteRecord(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+
+	int getWebNewsMaxId();
+	int getWebNewsClassesMaxId();
+	int getWebNewsCommentMaxId();
+	int updateWebNews(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+	int updateWebNewsClasses(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+	int updateWebNewsComment(@Param("traceList") List<List<Map<Object,Object>>> traceList);
+
+	int backupFromOraToHis(Map<Object,Object> params);
 }

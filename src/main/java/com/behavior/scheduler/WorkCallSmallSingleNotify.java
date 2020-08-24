@@ -3,6 +3,8 @@ package com.behavior.scheduler;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.behavior.mapper.mapper111.CallTask111Mapper;
+import com.behavior.mapper.mapper1111.CallTask1111Mapper;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
@@ -34,6 +36,14 @@ public class WorkCallSmallSingleNotify extends WorkJob {
 		log.info(TAG+">开始抓取小单资源数据:"+qParam);		
 		//执行原始数据整合
 		ct1112.updateSmallSingleCompare(qParam);
-		log.info(TAG+">调用抓取小单资源处理结果："+qParam);			
+		log.info(TAG+">调用抓取小单资源处理结果："+qParam);
+		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class);
+		qParam.remove("sDate");
+		//0 全部,1-12执行12个表的备份,1001-1004分成4个块进行备份12个表
+		for(int i=1001;i<1005;i++) {
+			qParam.put("action", i );
+			ct111.backupFromOraToHis(qParam);
+			log.info(TAG + ">备份OraToHis结果：" + qParam);
+		}
 	}
 }

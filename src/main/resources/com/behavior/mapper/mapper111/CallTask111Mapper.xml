@@ -2022,7 +2022,7 @@
            S.startTime,
            S.endTime,
            S.company,
-           S.roomId,S.roomName,S.teacher,S.enabled);
+           S.roomId,S.roomName,S.teacher,S.enabled)
 	;
   </update>
 
@@ -2054,20 +2054,93 @@
         )
 		VALUES(S.courseId,
            S.userLevel,
-           S.property);
+           S.property)
+	;
+  </update>
+
+  <select id="getCmsUserStokMaxTime" resultType="java.lang.String">
+    SELECT ISNULL(FORMAT(DATEADD(SECOND,-1,MAX([time])),'yyyy-MM-dd HH:mm:ss'),'2020-08-01') AS sdate
+    FROM [BD_UserNT].[dbo].[cms_userstock]
+  </select>
+
+  <update id="updateCmsUserStock" parameterType="Map">
+	declare @tmpData table(
+  	   	[statdate] [DATE] NOT NULL,
+        [personId] [INT] NOT NULL,
+        [stockCode] [NVARCHAR](10) NOT NULL,
+        [stockName] [NVARCHAR](30) NULL,
+        [operateType] [NVARCHAR](10) NULL,
+        [time] [DATETIME] NULL,
+        [ip] [NVARCHAR](15) NULL,
+        [measured] [TINYINT] NULL,
+        [hited] [TINYINT] NULL,
+        [hitDate] [DATE] NULL,
+        [from] [NVARCHAR](255) NULL,
+        PRIMARY KEY([statdate],[personId],[stockCode])
+  	);
+
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into @tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.statdate},${mapV.personId},${mapV.stockCode},${mapV.stockName}
+            ,${mapV.operateType},${mapV.time},${mapV.ip},${mapV.measured}
+            ,${mapV.hited},${mapV.hitDate},${mapV.from}
+	  	)
+	  	</foreach>;
+  	</foreach>
+
+  	MERGE INTO [BD_UserNT].[dbo].[cms_userstock] AS T
+	USING @tmpData AS S
+	ON T.statdate=S.statdate and T.personId=S.personId and T.stockCode=S.stockCode
+	WHEN MATCHED THEN UPDATE SET
+		T.[operateType] = S.[operateType]
+		,T.[time] = S.[time]
+		,T.ip = S.ip
+		,T.measured = S.measured
+		,T.[hited] = S.[hited]
+		,T.[hitDate] = S.[hitDate]
+		,T.[from] = S.[from]
+	WHEN NOT MATCHED THEN
+		INSERT ([statdate]
+           ,[personId]
+           ,[stockCode]
+           ,[stockName]
+           ,[operateType]
+           ,[time]
+           ,[ip]
+           ,[measured]
+           ,[hited]
+           ,[hitDate]
+           ,[from]
+        )
+		VALUES(S.[statdate]
+           ,S.[personId]
+           ,S.[stockCode]
+           ,S.[stockName]
+           ,S.[operateType]
+           ,S.[time]
+           ,S.[ip]
+           ,S.[measured]
+           ,S.[hited]
+           ,S.[hitDate]
+           ,S.[from])
 	;
   </update>
 
   <select id="getVotesMaxId" resultType="java.lang.Integer">
-    SELECT MAX([id])
+    SELECT isnull(MAX([id]),0)
     FROM BD_UserNT.[dbo].[votes]
   </select>
 
   <select id="getVoteItemsMaxId" resultType="java.lang.Integer">
-    SELECT MAX([id])
+    SELECT isnull(MAX([id]),0)
     FROM BD_UserNT.[dbo].[vote_items]
   </select>
-
+  <select id="getVoteRecordMaxId" resultType="java.lang.Integer">
+    SELECT isnull(MAX([recid]),0)
+    FROM BD_UserNT.[dbo].[vote_record]
+  </select>
   <update id="updateVotes" parameterType="Map">
 	 CREATE TABLE #votes(
         id INT NOT NULL,
@@ -2233,5 +2306,84 @@
                 ,S.tag_name
                 ,S.tag_value )
 	;
+  </update>
+
+  <update id="updateVoteRecord" parameterType="Map">
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into [BD_UserNT].[dbo].[vote_record]([recid],[itemid],[person_id],[person_name],[time],[ip],[from],[info]) values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.recid},${mapV.itemid},${mapV.person_id},${mapV.person_name}
+            ,${mapV.time},${mapV.ip},${mapV.from},${mapV.info}
+	  	)
+	  	</foreach>;
+  	</foreach>
+  </update>
+
+  <select id="getWebNewsMaxId" resultType="java.lang.Integer">
+    SELECT ISNULL(MAX([newsid]),0)
+    FROM BD_UserNT.[dbo].[_webnews]
+  </select>
+
+  <select id="getWebNewsClassesMaxId" resultType="java.lang.Integer">
+    SELECT ISNULL(MAX([classID]),0)
+    FROM BD_UserNT.[dbo].[_webnews_classes]
+  </select>
+
+  <select id="getWebNewsCommentMaxId" resultType="java.lang.Integer">
+    SELECT ISNULL(MAX([recId]),0)
+    FROM BD_UserNT.[dbo].[_webnews_comment]
+  </select>
+
+  <update id="updateWebNews" parameterType="Map">
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into [BD_UserNT].[dbo].[_webnews] values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.newsid},${mapV.classid},${mapV.title},${mapV.subtitle}
+            ,${mapV.link},${mapV.type},${mapV.contentType},${mapV.spareVideo}
+            ,${mapV.authlevel},${mapV.serviceLevel},${mapV.starLevel},${mapV.times}
+            ,${mapV.author},${mapV.authorinfo},${mapV.keyword},${mapV.tags}
+            ,${mapV.mediaId},${mapV.tencentMediaId},${mapV.content},${mapV.auditing}
+            ,${mapV.isDelete},${mapV.isFocus},${mapV.isSpecial},${mapV.isShadow}
+            ,${mapV.orderIndex}
+	  	)
+	  	</foreach>;
+  	</foreach>
+  </update>
+
+  <update id="updateWebNewsClasses" parameterType="Map">
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into [BD_UserNT].[dbo].[_webnews_classes] values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.classID},${mapV.parentID},${mapV.className},${mapV.type}
+            ,${mapV.description},${mapV.isHidden},${mapV.orderindex},${mapV.serviceLevel}
+            ,${mapV.enabled},${mapV.addPerson},${mapV.addTime},${mapV.modfiyPerson}
+            ,${mapV.modfiyTime}
+	  	)
+	  	</foreach>;
+  	</foreach>
+  </update>
+
+  <update id="updateWebNewsComment" parameterType="Map">
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into [BD_UserNT].[dbo].[_webnews_comment] values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+		  	${mapV.recid},${mapV.newsid},${mapV.personid}
+            ,${mapV.score},${mapV.ip},${mapV.time},${mapV.from}
+	  	)
+	  	</foreach>;
+  	</foreach>
+  </update>
+
+  <parameterMap type="Map" id="proBackup">
+  <parameter property="opId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer" />
+  <parameter property="action" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer" />
+  <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/>
+  </parameterMap>
+  <update id="backupFromOraToHis" parameterMap="proBackup" statementType="CALLABLE">
+  {call  BD_UsersORFromOra_His.dbo.P_UserOrFromOra_Backup_History(?,?,?)}
   </update>
 </mapper>

@@ -21,7 +21,21 @@
     INNER JOIN [DB_OfficialWeb].[dbo].[cms_course] b ON a.courseId = b.courseId
     WHERE DATEDIFF(DAY,[date],#{sDate})&lt;0
   </select>
-
+  <select id="queryCmsUserStock" resultType="java.util.Map">
+    SELECT [statdate]
+      ,[personId]
+      ,[stockCode]
+      ,[stockName]
+      ,[operateType]
+      ,[time]
+      ,[ip]
+      ,[measured]
+      ,[hited]
+      ,[hitDate]
+      ,[from]
+    FROM [DB_OfficialWeb].[dbo].[cms_userstock]
+    where [time]>#{sDate}
+  </select>
   <select id="queryVotes" resultType="java.util.Map">
       SELECT [id]
           ,[title]
@@ -69,5 +83,79 @@
       where a.id>#{id}
   </select>
 
+  <select id="queryVoteRecord2" resultType="java.util.Map">
+    SELECT [recid]
+      ,[voteid]
+      ,[number]
+      ,[itemid]
+      ,[person_id]
+      ,[person_name]
+      ,[time]
+      ,[ip]
+      ,[from]
+      ,[info]
+    FROM [DB_OfficialWeb].[dbo].[_vote_record2]
+    where recid>#{id} and [time]>'2020-08-01'
+  </select>
+
+  <select id="queryWebNews" resultType="java.util.Map">
+    SELECT [newsid]
+          ,[classid]
+          ,[title]
+          ,[subtitle]
+          ,[link]
+          ,[type]
+          ,[contentType]
+          ,[spareVideo]
+          ,[authlevel]
+          ,[serviceLevel]
+          ,[starLevel]
+          ,[times]
+          ,[author]
+          ,[authorinfo]
+          ,[keyword]
+          ,[tags]
+          ,[mediaId]
+          ,[tencentMediaId]
+          ,[content]
+          ,[auditing]
+          ,[isDelete]
+          ,[isFocus]
+          ,[isSpecial]
+          ,[isShadow]
+          ,[orderIndex]
+      FROM [DB_OfficialWeb].[dbo].[_webnews]
+      where addtime > '2020-06-01' and newsid>#{id}
+  </select>
+
+  <select id="queryWebNewsClasses" resultType="java.util.Map">
+    SELECT [classID]
+          ,[parentID]
+          ,[className]
+          ,[type]
+          ,[description]
+          ,[isHidden]
+          ,[orderindex]
+          ,[serviceLevel]
+          ,[enabled]
+          ,[addPerson]
+          ,[addTime]
+          ,[modfiyPerson]
+          ,[modfiyTime]
+      FROM [DB_OfficialWeb].[dbo].[_webnews_classes]
+      where classId>#{id}
+  </select>
+
+  <select id="queryWebNewsComment" resultType="java.util.Map">
+    SELECT [recid]
+      ,[newsid]
+      ,[personid]
+      ,[score]
+      ,[ip]
+      ,[time]
+      ,[from]
+    FROM [DB_OfficialWeb].[dbo].[_webnews_comment]
+    where recid>#{id} and [time]>'2020-08-01'
+  </select>
 
 </mapper>

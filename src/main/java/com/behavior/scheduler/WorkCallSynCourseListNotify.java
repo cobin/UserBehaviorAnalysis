@@ -46,6 +46,16 @@ public class WorkCallSynCourseListNotify extends WorkJob {
 		exec(result,wokCallExcuteAll.workFlag(2));
 		result = ct131.queryVoteItems(ct111.getVoteItemsMaxId());
 		exec(result,wokCallExcuteAll.workFlag(3));
+		result = ct131.queryWebNews(ct111.getWebNewsMaxId());
+		exec(result,wokCallExcuteAll.workFlag(4));
+		result = ct131.queryWebNewsClasses(ct111.getWebNewsClassesMaxId());
+		exec(result,wokCallExcuteAll.workFlag(5));
+		result = ct131.queryWebNewsComment(ct111.getWebNewsCommentMaxId());
+		exec(result,wokCallExcuteAll.workFlag(6));
+		result = ct131.queryCmsUserStock(ct111.getCmsUserStokMaxTime());
+		exec(result,wokCallExcuteAll.workFlag(7));
+		result = ct131.queryVoteRecord2(ct111.getVoteRecordMaxId());
+		exec(result,wokCallExcuteAll.workFlag(8));
 	}
 
 	private class WokCallExcuteAll implements WorkCallExcute{
@@ -70,6 +80,16 @@ public class WorkCallSynCourseListNotify extends WorkJob {
 				ct111.updateVotes(qData);
 			}else if(workFlag==3){
 				ct111.updateVoteItems(qData);
+			}else if(workFlag==4){
+				ct111.updateWebNews(qData);
+			}else if(workFlag==5){
+				ct111.updateWebNewsClasses(qData);
+			}else if(workFlag==6){
+				ct111.updateWebNewsComment(qData);
+			}else if(workFlag==7){
+				ct111.updateCmsUserStock(qData);
+			}else if(workFlag==8){
+				ct111.updateVoteRecord(qData);
 			}
 		}
 
@@ -80,7 +100,17 @@ public class WorkCallSynCourseListNotify extends WorkJob {
 			}else if(workFlag==2){
 				return new String[]{"title","type","levels","enabled","start","end","tags","multiple","addPerson","addPersonName","addTime","modifyPerson","modifyPersonName","modifyTime"};
 			}else if(workFlag==3){
-				return new String[]{"voteid","pid","content","color","score","type","enabled","counts","sums","right","jumpto","notrequired","orderindex","addperson","addtime","modifyperson","modifytime","rightanswer","picture","tag_name","tag_value"  };
+				return new String[]{"voteid","pid","content","color","score","type","enabled","counts","sums","right","jumpto","notrequired","orderindex","addperson","addtime","modifyperson","modifytime","rightanswer","picture","tag_name","tag_value"};
+			}else if(workFlag==4){
+				return new String[]{"classid","title","subtitle","link","type","contentType","spareVideo","authlevel","serviceLevel","starLevel","times","author","authorinfo","keyword","tags","mediaId","tencentMediaId","content","auditing","isDelete","isFocus","isSpecial","isShadow","orderIndex"};
+			}else if(workFlag==5){
+				return new String[]{"parentID","className","type","description","isHidden","orderindex","serviceLevel","enabled","addPerson","addTime","modfiyPerson","modfiyTime"};
+			}else if(workFlag==6){
+				return new String[]{"newsid","personid","score","ip","time","from"};
+			}else if(workFlag==7){
+				return new String[]{"statdate","personId","stockCode","stockName","operateType","time","ip","measured","hited","hitDate","from"};
+			}else if(workFlag==8){
+				return new String[]{"itemid","person_id","person_name","time","ip","from","info"};
 			}
 			return new String[0];
 		}
@@ -96,6 +126,16 @@ public class WorkCallSynCourseListNotify extends WorkJob {
 				tag = "Votes";
 			}else if(workFlag==3){
 				tag = "VotesItems";
+			}else if(workFlag==4){
+				tag = "Webnews";
+			}else if(workFlag==5){
+				tag = "WebnewsClasses";
+			}else if(workFlag==6){
+				tag = "WebnewsComment";
+			}else if(workFlag==7){
+				tag = "CmsUserStock";
+			}else if(workFlag==8){
+				tag = "VoteRecord";
 			}
 			return String.format("%s>%s",TAG,tag);
 		}
@@ -106,7 +146,4 @@ public class WorkCallSynCourseListNotify extends WorkJob {
 		}
 	}
 
-	public static void main(String[] args) {
-		new Thread(new BehaviorMain(1,WorkCallSynCourseListNotify.class.getSimpleName()), "BehaviorMain").start();
-	}
 }

@@ -47,8 +47,8 @@ public class WorkCallSmallOrderUserInfo extends WorkJob {
             //部门编号 8198,8432 培训部门
             // 8979,8907,8565,8980,8848,9224 小单部门
             // 9183,9074,9184,9095 电商部门
-            String sDate = "2020-06-28";
-            String eDate = "2020-08-11";
+            String sDate = "2020-08-17";
+            String eDate = "2020-08-23";
             String[][] adepts ={
                     null
                     ,{"电商部门","81,84"}

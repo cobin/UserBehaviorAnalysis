@@ -28,6 +28,13 @@ public interface CallTask131Mapper {
 	List<Map<Object,Object>> queryCourseProperty(@Param("sDate") String sDate);
 
 	/**
+	 * 课程的属性列表
+	 * @param sDate 开始日期
+	 * @return
+	 */
+	List<Map<Object,Object>> queryCmsUserStock(@Param("sDate") String sDate);
+
+	/**
 	 * 抓取佳美需要的答题相关
 	 * @param id
 	 * @return
@@ -40,4 +47,31 @@ public interface CallTask131Mapper {
 	 * @return
 	 */
 	List<Map<Object,Object>> queryVoteItems(@Param("id") int id);
+
+	/**
+	 * 抓取佳美需要的答题相关
+	 * @param id
+	 * @return
+	 */
+	List<Map<Object,Object>> queryVoteRecord2(@Param("id") int id);
+	/**
+	 * 抓取道雨需要的视频相关
+	 * @param id
+	 * @return
+	 */
+	List<Map<Object,Object>> queryWebNews(@Param("id") int id);
+
+	/**
+	 * 抓取道雨需要的视频相关
+	 * @param id
+	 * @return
+	 */
+	List<Map<Object,Object>> queryWebNewsClasses(@Param("id") int id);
+
+	/**
+	 * 抓取道雨需要的视频相关
+	 * @param id
+	 * @return
+	 */
+	List<Map<Object,Object>> queryWebNewsComment(@Param("id") int id);
 }

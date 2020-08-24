@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.behavior.mapper.mapper9105.CallTask9105Mapper" >
+  <parameterMap type="Map" id="proIndex">
+    <parameter property="opId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="sDate" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="companyId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="subjectId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="subjectTypeId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer"/>
+    <parameter property="reportVal" jdbcType="FLOAT" mode="IN" javaType="java.lang.Float"/>
+    <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/>
+  </parameterMap>
+  <update id="updateFinanceStatement" parameterMap="proIndex" statementType="CALLABLE" >
+  {call DB_WebNerveData.dbo.P_Labor_Cost_Finance_Statement_Report_Data_Add(?, ?, ?, ?, ?, ?, ?)}
+  </update>
+
+  <select id="updateMuliFinanceStatement" parameterType="map" resultType="map" >
+    create table #finaData(sDate int ,companyId int,subjectId int,subjectTypeId int ,reportVal float null
+        ,sCode varchar(100),tCode varchar(100),subjectName varchar(500),subjectTypeName varchar(500));
+    <foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+      insert into #finaData values
+        <foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+        (${mapV.sDate},${mapV.companyId},${mapV.subjectId},${mapV.subjectTypeId},${mapV.reportVal}
+          ,'${mapV.sCode}','${mapV.tCode}','${mapV.subjectName}','${mapV.subjectTypeName}')
+        </foreach>
+    </foreach>
+    declare @errMsg varchar(100)
+    EXEC DB_WebNerveData.[dbo].[P_Labor_Cost_Finance_Statement_Report_Data_Update]
+      @opId = -1,
+      @errMsg=@errMsg output
+  </select>
+</mapper>
