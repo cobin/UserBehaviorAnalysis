@@ -38,7 +38,7 @@
             <AppenderRef ref="Console" />
         </Logger>
 
-        <Logger name="com.znz.mapper" level="debug" additivity="true">
+        <Logger name="com.behavior.mapper" level="debug" additivity="true">
             <AppenderRef ref="Console" />
         </Logger>
 

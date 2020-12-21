@@ -393,6 +393,29 @@
 		<property name="dataSource" ref="myDataSource9105" />
 	</bean>
 
+	<!-- 9106 IP用户授权地址数据配置 -->
+
+	<bean id="myDataSource9106" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+		<property name="alias" value="${jdbc.alias9106}"></property>
+		<property name="delegateProperties"><value>user=${jdbc.username9106},password=${jdbc.password9106}</value></property>
+		<property name="user" value="${jdbc.username9106}"/>
+		<property name="password" value="${jdbc.password9106}"/>
+		<property name="driver" value="${jdbc.driverClassName9106}"/>
+		<property name="driverUrl" value="${jdbc.url9106}"/>
+		<property name="houseKeepingTestSql" value="${jdbc.query9106}"></property>
+	</bean>
+	<bean id="sqlSessionFactory9106" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="myDataSource9106" />
+	</bean>
+	<bean id="scannerConfigurer9106" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory9106"/>
+		<property name="basePackage" value="com.behavior.mapper.mapper9106" />
+	</bean>
+	<bean id="transactionManager9106"
+		  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="myDataSource9106" />
+	</bean>
+
 	<!-- 131 课程列表数据配置 -->
 
 	<bean id="myDataSource131" class="org.logicalcobwebs.proxool.ProxoolDataSource">

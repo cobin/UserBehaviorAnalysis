@@ -40,10 +40,16 @@ public class WorkCallSmallSingleNotify extends WorkJob {
 		CallTask111Mapper ct111 = bm.getMapper(CallTask111Mapper.class);
 		qParam.remove("sDate");
 		//0 全部,1-12执行12个表的备份,1001-1004分成4个块进行备份12个表
-		for(int i=1001;i<1005;i++) {
+		int backCount = 1005;
+		for(int i=1001;i<backCount;i++) {
 			qParam.put("action", i );
-			ct111.backupFromOraToHis(qParam);
-			log.info(TAG + ">备份OraToHis结果：" + qParam);
+			try {
+				ct111.backupFromOraToHis(qParam);
+				backCount =(Integer)qParam.get("returnVal");
+				log.info(TAG + ">备份OraToHis结果：" + qParam);
+			}catch(Exception ex) {
+				log.error(ex);
+			}
 		}
 	}
 }

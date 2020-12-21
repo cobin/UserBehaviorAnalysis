@@ -85,4 +85,200 @@
            ,#{from,jdbcType=INTEGER}
            )
    </insert>
+
+   <insert id="insertOneDayUserData" parameterType="map">
+    IF(OBJECT_ID('tempdb..#tmpData') IS NOT NULL)
+	    DROP TABLE #tmpData
+    CREATE TABLE  #tmpData(
+        sdate INT,
+        personId INT,
+        personName VARCHAR(100) ,
+        userId INT ,
+        userName VARCHAR(300) NULL,
+        FoundAccount VARCHAR(100) NULL,
+        p1 FLOAT NULL,
+        p2 FLOAT NULL,
+        p3 FLOAT NULL,
+        p4 FLOAT NULL,
+        p5 FLOAT NULL,
+        openGDate INT NULL,
+        openCDate INT NULL,
+        p6 FLOAT NULL,
+        p7 FLOAT NULL,
+        p8 FLOAT NULL,
+        remark VARCHAR(500) NULL,
+        addDate DATETIME NOT NULL
+    );
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into #tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.sdate},${mapV.personId},'${mapV.personName}'
+	  	,${mapV.userId},'${mapV.userName}',${mapV.FoundAccount},${mapV.p1}
+	  	,${mapV.p2},${mapV.p3},${mapV.p4},${mapV.p5}
+	  	,${mapV.openGDate},${mapV.openCDate},${mapV.p6},${mapV.p7}
+	  	,${mapV.p8},'${mapV.remark}',GETDATE()
+	  	)
+	  	</foreach>;
+  	</foreach>;
+  	insert into tb_tempdata_onday_data
+  	select * from #tmpData
+   </insert>
+
+   <insert id="insertUserData" parameterType="map">
+    IF(OBJECT_ID('tempdb..#tmpData') IS NOT NULL)
+	    DROP TABLE #tmpData
+    CREATE TABLE  #tmpData(
+        sdate INT,
+        personId INT,
+        personName VARCHAR(100) ,
+        userId INT ,
+        userAddr VARCHAR(300) NULL,
+        p1 FLOAT NULL,
+        p2 FLOAT NULL,
+        p3 FLOAT NULL,
+        lastDate INT NULL,
+        p4 FLOAT NULL,
+        p5 FLOAT NULL,
+        remark VARCHAR(500) NULL,
+        addDate DATETIME NOT NULL,
+        PRIMARY KEY(sdate,personId,userId)
+    );
+  	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+	  	insert into #tmpData values
+	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+	  	(
+	  	${mapV.sdate},${mapV.personId},'${mapV.personName}'
+	  	,${mapV.userId},'${mapV.userAddr}',${mapV.p1},${mapV.p2}
+	  	,${mapV.p3},${mapV.lastDate},${mapV.p4},${mapV.p5}
+	  	,'${mapV.remark}',GETDATE()
+	  	)
+	  	</foreach>;
+  	</foreach>;
+  	insert into tb_tempdata_long_data
+  	select * from #tmpData
+   </insert>
+
+   <parameterMap id="ipinfoMap" type="map">
+        <parameter property="returnId" javaType="integer" jdbcType="INTEGER" mode="OUT"/>
+        <parameter property="opId" javaType="integer" jdbcType="INTEGER" mode="IN"/>
+        <parameter property="startIpInt" javaType="long" jdbcType="BIGINT" mode="IN"/>
+        <parameter property="endIpInt" javaType="long" jdbcType="BIGINT" mode="IN"/>
+        <parameter property="startIp" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="endIp" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="regionName" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="province" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="remark" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="errMsg" javaType="string" jdbcType="VARCHAR" mode="OUT"/>
+
+   </parameterMap>
+   <insert id="insertIps" parameterMap="ipinfoMap"  statementType="CALLABLE">
+    {? = call P_Person_Active_Compass_Software_Address_FromIp138_add(?,?,?,?,?,?,?,?,?)}
+   </insert>
+
+   <insert id="insertIps2" parameterType="map">
+    IF(OBJECT_ID('tempdb..#FromIp138') IS NOT NULL)
+	    DROP TABLE #FromIp138;
+    CREATE TABLE  #FromIp138(
+        startIp VARCHAR(100) NOT NULL,
+        endIp	VARCHAR(100) NOT NULL,
+        startIpInt bigINT NOT NULL,
+        endIpInt bigINT NOT NULL,
+        regionName VARCHAR(100) NOT NULL,
+        province VARCHAR(100) NULL,
+        remark VARCHAR(500) NULL,
+        PRIMARY KEY(startIpInt,endIpInt)
+    );
+    INSERT INTO #FromIp138 VALUES(
+        #{startIp},#{endIp},#{startIpInt},#{endIpInt},#{regionName}
+        ,#{province},#{remark}) ;
+    IF(NOT EXISTS(
+        SELECT *
+        FROM _Person_Active_Compass_Software_Address_FromIp138 a
+		INNER JOIN #FromIp138 b ON b.startIpInt BETWEEN a.startIpInt AND a.endIpInt
+    ))
+    BEGIN
+        UPDATE a
+        SET a.endIpInt = b.endIpInt,a.endIp = b.endIp
+        FROM _Person_Active_Compass_Software_Address_FromIp138 a
+        INNER JOIN (
+            SELECT b.*,a.startIpInt AS startPrvId
+            FROM(
+                SELECT a.*,a.endIpInt+1 AS startIpNextId
+                FROM _Person_Active_Compass_Software_Address_FromIp138 a
+            ) a
+            INNER JOIN #FromIp138 b on a.startIpNextId = b.startIpInt
+        ) b ON a.startIpInt=b.startPrvId
+        IF(@@ROWCOUNT=0)
+        BEGIN
+            INSERT  INTO  _Person_Active_Compass_Software_Address_FromIp138
+            SELECT  * FROM  #FromIp138
+        END
+    END
+   </insert>
+
+   <select id="queryIpArea" resultType="java.util.Map">
+    select startIp,endIp,startIpInt,endIpInt,regionName
+    from _Person_Active_Compass_Software_Address_FromIp138
+    order by startIpInt
+   </select>
+
+    <insert id="insertChacuoIps" parameterType="map">
+    IF(NOT EXISTS(
+        SELECT *
+        FROM _Person_Active_Compass_Software_Address_FromChacuo
+        WHERE #{startIpInt} BETWEEN startIpInt AND   endIpInt
+    ))
+    BEGIN
+        insert into _Person_Active_Compass_Software_Address_FromChacuo
+        values (
+            #{startIp},#{endIp},#{startIpInt},#{endIpInt},#{regionName}
+        )
+    END
+    </insert>
+
+    <insert id="insertIpAddress" parameterType="map">
+        IF(OBJECT_ID('tempdb..#tmpData') IS NOT NULL)
+	        DROP TABLE #tmpData
+        CREATE TABLE  #tmpData(
+            ipAddr VARCHAR(15) NOT NULL,
+            ip2Int BIGINT NOT NULL
+        );
+        <foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
+            insert into #tmpData values
+            <foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
+            (
+            '${mapV.ipAddr}',${mapV.ip2Int}
+            )
+            </foreach>;
+        </foreach>;
+        insert into _Person_Active_Compass_Software_Address
+        select distinct a.* from #tmpData a
+        left join _Person_Active_Compass_Software_Address b on a.ip2Int=b.ip2Int
+        where b.ip2Int is null
+    </insert>
+
+    <select id="queryIpAddress" parameterType="map" resultType="String">
+        SELECT a.ipAddr
+        FROM(
+            SELECT a.*,ROW_NUMBER() OVER(ORDER BY a.ip2Int ${desc}) AS rowId
+            FROM _Person_Active_Compass_Software_Address a
+        ) a
+        WHERE a.rowId BETWEEN ${(page-1)*pageSize} AND ${page*pageSize}
+    </select>
+
+    <resultMap id="aa" type="map">
+    </resultMap>
+
+    <resultMap id="bb" type="map">
+    </resultMap>
+
+    <select id="getTaskEveryDay" parameterType="map" resultMap="aa,bb">
+        declare @ErrMsg varchar(100)
+        EXEC  [DB_WebNerveData_20190903].[dbo].[P_WorkTaskSystem_EveryDay_Task_get]
+              @OpId = #{opId},
+              @StartDate = N'2020-10-12',
+              @EndDate = N'2020-10-18',
+              @ErrMsg = @ErrMsg OUTPUT
+    </select>
 </mapper>

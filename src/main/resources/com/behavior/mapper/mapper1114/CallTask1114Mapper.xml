@@ -143,6 +143,9 @@
         or
         b.ADeptId IN (${adeptId})
        )
+       <if test="exDeptId != null and exDeptId != ''">
+        and  b.ADeptId NOT IN (${exDeptId})
+       </if>
     ORDER BY b.ADeptId,b.AGroupId, b.PersonId
   </select>
 

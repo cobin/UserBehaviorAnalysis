@@ -59,7 +59,7 @@ public interface CallTask131Mapper {
 	 * @param id
 	 * @return
 	 */
-	List<Map<Object,Object>> queryWebNews(@Param("id") int id);
+	List<Map<Object,Object>> queryWebNews(@Param("addDate") Date addDate);
 
 	/**
 	 * 抓取道雨需要的视频相关

@@ -47,18 +47,20 @@ public class WorkCallSmallOrderUserInfo extends WorkJob {
             //部门编号 8198,8432 培训部门
             // 8979,8907,8565,8980,8848,9224 小单部门
             // 9183,9074,9184,9095 电商部门
-            String sDate = "2020-08-17";
-            String eDate = "2020-08-23";
+            String sDate = "2020-11-30";
+            String eDate = "2020-12-13";
             String[][] adepts ={
                     null
-                    ,{"电商部门","81,84"}
-                    ,{"小单部","85,86"}
+//                    ,{"电商部门","81,84"}
+                    //云集小单七部焦建军+云集小单十二部巩伟豪+智富小单十五部张树旗
+//                    ,{"小单中心2","8342,8448,9109"}
+//                    ,{"小单中心1","85,86","8342,8448,9109"}
 //                    ,{"电商部门","9183,9074,9184,9095"}
 //                    ,{"小单部","8979,8907,8565,8980,8848,9224"}
 //                    ,{"云集直营部","11,12,13,15"}
 //                    ,{"智富直营部","41"}
-//                    ,{"云集招聘培训部","8198"}
-//                    ,{"智富招聘培训部","8432"}
+                    ,{"云集招聘培训部","8198"}
+                    ,{"智富招聘培训部","8432"}
             };
 
             File f = new File("lx"+ CDate.formatToLongDate().replaceFirst(" ","_").replaceAll(":","-")+".xls");
@@ -69,7 +71,7 @@ public class WorkCallSmallOrderUserInfo extends WorkJob {
                     if(doDepts==null){
                         continue;
                     }
-                    List<Map<Object, Object>> xlsResult = getResult(ct1114, ct69, sDate, eDate, doDepts[1]);
+                    List<Map<Object, Object>> xlsResult = getResult(ct1114, ct69, sDate, eDate, doDepts[1],doDepts.length>2?doDepts[2]:null);
                     WritableSheet sheet = workbook.createSheet(doDepts[0], iSheet);
                     writeExcel(sheet, xlsResult);
                     iSheet++;
@@ -83,8 +85,8 @@ public class WorkCallSmallOrderUserInfo extends WorkJob {
 
         }
 
-        private List<Map<Object,Object>> getResult(CallTask1114Mapper ct1114,CallTask69Mapper ct69,String sDate,String eDate,String adepts){
-            List<Map<Object,Object>> result = ct1114.getSmallOrderUserInfo(sDate,eDate,adepts);
+        private List<Map<Object,Object>> getResult(CallTask1114Mapper ct1114,CallTask69Mapper ct69,String sDate,String eDate,String adepts,String exclusionDepts){
+            List<Map<Object,Object>> result = ct1114.getSmallOrderUserInfo(sDate,eDate,adepts,exclusionDepts);
             StringBuffer buff = new StringBuffer();
             Map<Object,Map<Object,Object>> mResult = new HashMap<>(result.size());
             for(Map<Object,Object> r:result){

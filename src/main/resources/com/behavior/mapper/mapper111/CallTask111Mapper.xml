@@ -2320,8 +2320,8 @@
   	</foreach>
   </update>
 
-  <select id="getWebNewsMaxId" resultType="java.lang.Integer">
-    SELECT ISNULL(MAX([newsid]),0)
+  <select id="getWebNewsMaxDate" resultType="java.util.Date">
+    SELECT ISNULL(MAX([addTime]),'2020-06-01')
     FROM BD_UserNT.[dbo].[_webnews]
   </select>
 
@@ -2336,8 +2336,41 @@
   </select>
 
   <update id="updateWebNews" parameterType="Map">
+    IF(OBJECT_ID('tempdb..#tempData') IS NOT NULL)
+		DROP TABLE #tempData
+	CREATE TABLE #tempData(
+        [newsid] [INT] NOT NULL,
+        [classid] [INT] NOT NULL,
+        [title] [NVARCHAR](300) NOT NULL,
+        [subtitle] [NVARCHAR](100) NULL,
+        [link] [NVARCHAR](200) NULL,
+        [type] [TINYINT] NULL,
+        [contentType] [TINYINT] NULL,
+        [spareVideo] [VARCHAR](500) NULL,
+        [authlevel] [TINYINT] NULL,
+        [serviceLevel] [INT] NULL,
+        [starLevel] [TINYINT] NULL,
+        [times] [DATE] NULL,
+        [author] [NVARCHAR](100) NULL,
+        [authorinfo] [NVARCHAR](MAX) NULL,
+        [keyword] [NVARCHAR](255) NULL,
+        [tags] [VARCHAR](255) NULL,
+        [mediaId] [VARCHAR](255) NULL,
+        [tencentMediaId] [VARCHAR](255) NULL,
+        [content] [NVARCHAR](MAX) NOT NULL,
+        [auditing] [TINYINT] NULL,
+        [isDelete] [TINYINT] NULL,
+        [isFocus] [TINYINT] NULL,
+        [isSpecial] [TINYINT] NULL,
+        [isShadow] [TINYINT] NULL,
+        [orderIndex] [INT] NULL,
+        [addPerson] [INT] NULL,
+        [addPersonName] [VARCHAR](100) NULL,
+        [addTime] [DATETIME] NULL,
+        Primary Key (newsId)
+    );
   	<foreach collection="traceList" index="qindex" item="qList" open="" separator=";" close="">
-	  	insert into [BD_UserNT].[dbo].[_webnews] values
+	  	insert into #tempData values
 	  	<foreach collection="qList" index="index" item="mapV" open="" separator="," close="">
 	  	(
 		  	${mapV.newsid},${mapV.classid},${mapV.title},${mapV.subtitle}
@@ -2350,6 +2383,42 @@
 	  	)
 	  	</foreach>;
   	</foreach>
+  	MERGE INTO [BD_UserNT].[dbo].[_webnews] AS T
+    USING #tempDate AS S
+    ON T.newsid = S.newsId
+    WHEN MATCHED THEN
+        UPDATE SET T.auditing = S.auditing
+    WHEN NOT MATCHED THEN
+        INSERT VALUES(
+            [newsid],
+            [classid],
+            [title],
+            [subtitle],
+            [link],
+            [type],
+            [contentType],
+            [spareVideo],
+            [authlevel],
+            [serviceLevel],
+            [starLevel],
+            [times],
+            [author],
+            [authorinfo],
+            [keyword],
+            [tags],
+            [mediaId],
+            [tencentMediaId],
+            [content],
+            [auditing],
+            [isDelete],
+            [isFocus],
+            [isSpecial],
+            [isShadow],
+            [orderIndex],
+            [addPerson],
+            [addPersonName],
+            [addTime]
+        );
   </update>
 
   <update id="updateWebNewsClasses" parameterType="Map">
@@ -2379,11 +2448,12 @@
   </update>
 
   <parameterMap type="Map" id="proBackup">
+  <parameter property="returnVal" jdbcType="INTEGER" mode="OUT" javaType="java.lang.Integer"/>
   <parameter property="opId" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer" />
   <parameter property="action" jdbcType="INTEGER" mode="IN" javaType="java.lang.Integer" />
   <parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" javaType="java.lang.String"/>
   </parameterMap>
   <update id="backupFromOraToHis" parameterMap="proBackup" statementType="CALLABLE">
-  {call  BD_UsersORFromOra_His.dbo.P_UserOrFromOra_Backup_History(?,?,?)}
+  {? = call  BD_UsersORFromOra_His.dbo.P_UserOrFromOra_Backup_History(?,?,?)}
   </update>
 </mapper>

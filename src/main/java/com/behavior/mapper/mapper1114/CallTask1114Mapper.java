@@ -13,7 +13,7 @@ import java.util.Map;
 public interface CallTask1114Mapper {
 	int updateSmallOrderWap(Map<Object,Object> update);
 	List<Map<String,Integer>> getSmallOrderWapActInfo();
-	List<Map<Object,Object>> getSmallOrderUserInfo(@Param("sDate") String sDate,@Param("eDate") String eDate,@Param("adeptId") String adeptId);
+	List<Map<Object,Object>> getSmallOrderUserInfo(@Param("sDate") String sDate,@Param("eDate") String eDate,@Param("adeptId") String adeptId,@Param("exDeptId") String exclusionDeptId);
 
 	List<Integer> getMissionActUnits(@Param("actId") int actId);
 	/**

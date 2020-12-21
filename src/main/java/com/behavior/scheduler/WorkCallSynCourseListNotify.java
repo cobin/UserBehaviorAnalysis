@@ -46,7 +46,7 @@ public class WorkCallSynCourseListNotify extends WorkJob {
 		exec(result,wokCallExcuteAll.workFlag(2));
 		result = ct131.queryVoteItems(ct111.getVoteItemsMaxId());
 		exec(result,wokCallExcuteAll.workFlag(3));
-		result = ct131.queryWebNews(ct111.getWebNewsMaxId());
+		result = ct131.queryWebNews(ct111.getWebNewsMaxDate());
 		exec(result,wokCallExcuteAll.workFlag(4));
 		result = ct131.queryWebNewsClasses(ct111.getWebNewsClassesMaxId());
 		exec(result,wokCallExcuteAll.workFlag(5));
@@ -54,8 +54,8 @@ public class WorkCallSynCourseListNotify extends WorkJob {
 		exec(result,wokCallExcuteAll.workFlag(6));
 		result = ct131.queryCmsUserStock(ct111.getCmsUserStokMaxTime());
 		exec(result,wokCallExcuteAll.workFlag(7));
-		result = ct131.queryVoteRecord2(ct111.getVoteRecordMaxId());
-		exec(result,wokCallExcuteAll.workFlag(8));
+//		result = ct131.queryVoteRecord2(ct111.getVoteRecordMaxId());
+//		exec(result,wokCallExcuteAll.workFlag(8));
 	}
 
 	private class WokCallExcuteAll implements WorkCallExcute{

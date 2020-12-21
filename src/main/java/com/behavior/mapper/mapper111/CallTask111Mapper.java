@@ -109,7 +109,7 @@ public interface CallTask111Mapper {
 	int updateVoteItems(@Param("traceList") List<List<Map<Object,Object>>> traceList);
 	int updateVoteRecord(@Param("traceList") List<List<Map<Object,Object>>> traceList);
 
-	int getWebNewsMaxId();
+	Date getWebNewsMaxDate();
 	int getWebNewsClassesMaxId();
 	int getWebNewsCommentMaxId();
 	int updateWebNews(@Param("traceList") List<List<Map<Object,Object>>> traceList);

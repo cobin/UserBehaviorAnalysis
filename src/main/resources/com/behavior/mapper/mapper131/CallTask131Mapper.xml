@@ -125,7 +125,7 @@
           ,[isShadow]
           ,[orderIndex]
       FROM [DB_OfficialWeb].[dbo].[_webnews]
-      where addtime > '2020-06-01' and newsid>#{id}
+      where addtime > '2020-06-01' and isnull(auditTime,addtime)>=#{addDate}
   </select>
 
   <select id="queryWebNewsClasses" resultType="java.util.Map">
